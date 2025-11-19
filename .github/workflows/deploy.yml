@@ -21,21 +21,13 @@ jobs:
       - name: Set deployment path
         run: |
           case "${GITHUB_REF_NAME}" in
-            "backend_dev")
-              echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms" >> $GITHUB_ENV
-              ;;
-            "staging")
-              echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms2" >> $GITHUB_ENV
-              ;;
-            "preprod")
-              echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms3" >> $GITHUB_ENV
-              ;;
-            "main")
-              echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms4" >> $GITHUB_ENV
-              ;;
+            "backend_dev") echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms" >> $GITHUB_ENV ;;
+            "staging")     echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms2" >> $GITHUB_ENV ;;
+            "preprod")     echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms3" >> $GITHUB_ENV ;;
+            "main")        echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms4" >> $GITHUB_ENV ;;
           esac
 
-      - name: Remove unnecessary files before upload
+      - name: Clean unnecessary local files before upload
         run: |
           rm -rf .git
           rm -rf .github
@@ -43,8 +35,12 @@ jobs:
           rm -rf vendor
           rm -f .env
           rm -f .env.*
-          rm -f .phpunit.result.cache
+          rm -rf bootstrap/cache/*.php
+          rm -rf storage/framework/cache/data/*
           rm -rf storage/*.key
+          rm -rf public/storage
+          rm -rf public/build
+          rm -rf public/hot
 
       - name: Deploy files via SFTP
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
@@ -63,11 +59,13 @@ jobs:
             vendor/*
             *.env
             storage/*.key
+            storage/framework/cache/data/*
+            bootstrap/cache/*.php
             public/storage/*
             public/hot
             public/build
 
-      - name: Run Laravel optimization via SSH
+      - name: Run Laravel commands on server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.ALYMS_HOST }}
@@ -77,8 +75,21 @@ jobs:
           use_insecure_cipher: true
           script: |
             cd ${{ env.REMOTE_PATH }}
+
+            # Remove old cached files (fixes 405 error)
+            rm -f bootstrap/cache/*.php
+
+            # Rebuild vendor
             /opt/cpanel/composer/bin/composer install --no-dev --optimize-autoloader
+
+            # Migrations
             php artisan migrate --force
+
+            # Create storage link
             php artisan storage:link || true
+
+            # Clear cache fully
             php artisan optimize:clear
+
+            # Rebuild optimized cache
             php artisan optimize
