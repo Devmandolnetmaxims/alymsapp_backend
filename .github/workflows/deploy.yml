@@ -11,21 +11,40 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-      - name: Set environment variables
+      - name: Set deployment path
         run: |
-          if [ "${GITHUB_REF_NAME}" == "backend_dev" ]; then
-            echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms" >> $GITHUB_ENV
-          elif [ "${GITHUB_REF_NAME}" == "staging" ]; then
-            echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms2" >> $GITHUB_ENV
-          elif [ "${GITHUB_REF_NAME}" == "preprod" ]; then
-            echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms3" >> $GITHUB_ENV
-          elif [ "${GITHUB_REF_NAME}" == "main" ]; then
-            echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms4" >> $GITHUB_ENV
-          fi
+          case "${GITHUB_REF_NAME}" in
+            "backend_dev")
+              echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms" >> $GITHUB_ENV
+              ;;
+            "staging")
+              echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms2" >> $GITHUB_ENV
+              ;;
+            "preprod")
+              echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms3" >> $GITHUB_ENV
+              ;;
+            "main")
+              echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms4" >> $GITHUB_ENV
+              ;;
+          esac
+
+      - name: Remove unnecessary files before upload
+        run: |
+          rm -rf .git
+          rm -rf .github
+          rm -rf node_modules
+          rm -rf vendor
+          rm -f .env
+          rm -f .env.*
+          rm -f .phpunit.result.cache
+          rm -rf storage/*.key
 
       - name: Deploy files via SFTP
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
@@ -37,18 +56,29 @@ jobs:
           local_path: ./
           remote_path: ${{ env.REMOTE_PATH }}
           sftp_only: true
+          exclude: |
+            .git*
+            .github*
+            node_modules/*
+            vendor/*
+            *.env
+            storage/*.key
+            public/storage/*
+            public/hot
+            public/build
 
-      - name: Run Laravel commands via SSH
+      - name: Run Laravel optimization via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.ALYMS_HOST }}
           username: ${{ secrets.ALYMS_USERNAME }}
           password: ${{ secrets.ALYMS_PASSWORD }}
           port: 22
+          use_insecure_cipher: true
           script: |
             cd ${{ env.REMOTE_PATH }}
             /opt/cpanel/composer/bin/composer install --no-dev --optimize-autoloader
             php artisan migrate --force
+            php artisan storage:link || true
             php artisan optimize:clear
             php artisan optimize
-          use_insecure_cipher: true
