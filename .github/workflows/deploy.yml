@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - backend_dev
-      - staging
-      - preprod
-      - main
+      - backend_prod
 
 jobs:
   deploy:
@@ -21,10 +19,8 @@ jobs:
       - name: Set deployment path
         run: |
           case "${GITHUB_REF_NAME}" in
-            "backend_dev") echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms" >> $GITHUB_ENV ;;
-            "staging")     echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms2" >> $GITHUB_ENV ;;
-            "preprod")     echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms3" >> $GITHUB_ENV ;;
-            "main")        echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/dev.almysapp.com/alyms4" >> $GITHUB_ENV ;;
+            "backend_dev") echo "REMOTE_PATH=/home/eord0oj6j22n/dev.almysapp.com/alyms" >> $GITHUB_ENV ;;
+            "backend_prod")        echo "REMOTE_PATH=/home/eord0oj6j22n/public_html/alyms" >> $GITHUB_ENV ;;
           esac
 
       - name: Clean unnecessary local files before upload
@@ -90,6 +86,3 @@ jobs:
 
             # Clear cache fully
             php artisan optimize:clear
-
-            # Rebuild optimized cache
-            php artisan optimize
