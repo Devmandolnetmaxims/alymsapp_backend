@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Billing PDF</title>
+  <title>Billing PDF'sss</title>
 </head>
 <body style="font-family: Arial, sans-serif; padding: 24px; background-color: #FFFFFF;">
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
         <td style="width: 50%;">
-          <img src="https://almysauto.webwatt.com/assets/errors/logo/logo.jpg" style="height: 65px; width: 110px;" alt="Brand Logo">
+          <img src="{{env('WEB_URL').'/assets/errors/logo/logo.jpg'}}" style="height: 65px; width: 110px;" alt="Logo">
           <p style="font-size: 12px; font-weight: 600; line-height: 1.6;">https://www.almysautos.co.uk</p>
         </td>
         <td style="width: 50%; text-align: right;">
@@ -92,44 +92,55 @@
       @endforeach
     </table>
   
-    <table style="width: 100%; border-collapse: collapse; margin-top: 32px;">
-      <tr>
-        <td style="width: 76%;"></td>
-        <td style="width: 12%;">
-          <p style="font-size: 15px; font-weight: 400; line-height: 1.43;">Discount:</p>
-        </td>
-        <td style="width: 12%;">
-          <p style="font-size: 15px; font-weight: 400; line-height: 1.43;">{{$invoice->net_discount}}</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="width: 76%;"></td>
-        <td style="width: 12%;">
-          <p style="font-size: 15px; font-weight: 400; line-height: 1.43;">Total Net:</p>
-        </td>
-        <td style="width: 12%;">
-          <p style="font-size: 15px; font-weight: 400; line-height: 1.43;">{{$invoice->net_total}}</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="width: 76%;"></td>
-        <td style="width: 12%;">
-          <p style="font-size: 15px; font-weight: 400; line-height: 1.43;">VAT(20%):</p>
-        </td>
-        <td style="width: 12%;">
-          <p style="font-size: 15px; font-weight: 400; line-height: 1.43;">{{$invoice->net_total}}</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="width: 76%;"></td>
-        <td style="width: 12%;">
-          <p style="font-size: 15px; font-weight: 400; line-height: 1.43;">Total:</p>
-        </td>
-        <td style="width: 12%;">
-          <p style="font-size: 15px; font-weight: 400; line-height: 1.43;">{{$invoice->grand_total}}</p>
-        </td>
-      </tr>
-    </table>
+   <table style="width: 100%; border-collapse: collapse; margin-top: 32px;">
+
+  <!-- LEFT + RIGHT WRAPPER ROW -->
+  <tr>
+
+    <!-- LEFT COLUMN (Bank Details) -->
+    <td style="width: 60%; vertical-align: top;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td><strong>Bank Name</strong></td>
+          <td>BARCLAYS BANK</td>
+        </tr>
+        <tr>
+          <td><strong>Account Number</strong></td>
+          <td>43230643</td>
+        </tr>
+        <tr>
+          <td><strong>Sort Code</strong></td>
+          <td>20-42-76</td>
+        </tr>
+      </table>
+    </td>
+
+    <!-- RIGHT COLUMN (Totals) -->
+    <td style="width: 40%; vertical-align: top;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="text-align: right;"><strong>Discount:</strong></td>
+          <td>{{$invoice->net_discount}}</td>
+        </tr>
+        <tr>
+          <td style="text-align: right;"><strong>Total Net:</strong></td>
+          <td>{{$invoice->net_total}}</td>
+        </tr>
+        <tr>
+          <td style="text-align: right;"><strong>VAT(20%):</strong></td>
+          <td>{{$invoice->net_total}}</td>
+        </tr>
+        <tr>
+          <td style="text-align: right;"><strong>Total:</strong></td>
+          <td>{{$invoice->grand_total}}</td>
+        </tr>
+      </table>
+    </td>
+
+  </tr>
+
+</table>
+
   
     <div style="margin-top: 32px;">
       <p style="font-size: 12px; font-weight: 600; line-height: 1.6; margin-bottom: 4px;">Notes</p>
