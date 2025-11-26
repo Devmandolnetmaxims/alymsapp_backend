@@ -94,7 +94,7 @@
       <td class="left-logo">
         <img src="{{env('WEB_URL')}}/assets/errors/logo/logo.jpg">
 
-        <p style="font-size: 12px; font-weight: 600; margin-top: 4px;">
+        <p style="font-size: 14px; font-weight: 600; margin-top: 4px;">
           www.almysautos.co.uk
         </p>
       </td>
@@ -214,23 +214,23 @@
     <td colspan="2" style="border:1px solid #E5E5E5; padding:0px;">
       <table style="width:100%; border-collapse: collapse;">
         <tr>
-          <td style="text-align:left; padding:9px; border: 1px solid #ccc;"><b>Discount:</b></td>
-          <td style="padding:9px; border: 1px solid #ccc;">£{{ number_format($invoice->net_discount, 2) }}</td>
+          <td style="text-align:left; padding:10px; border: 1px solid #ccc;"><b>Discount:</b></td>
+          <td style="padding:10px; border: 1px solid #ccc;">£{{ number_format($invoice->net_discount, 2) }}</td>
         </tr>
 
         <tr>
-          <td style="text-align:left; padding:9px; border: 1px solid #ccc;"><b>Total Net:</b></td>
-          <td style="padding:9px; border: 1px solid #ccc;">£{{ number_format($invoice->net_total, 2) }}</td>
+          <td style="text-align:left; padding:10px; border: 1px solid #ccc;"><b>Total Net:</b></td>
+          <td style="padding:10px; border: 1px solid #ccc;">£{{ number_format($invoice->net_total, 2) }}</td>
         </tr>
 
         <tr>
-          <td style="text-align:left; padding:9px; border: 1px solid #ccc;"><b>VAT (20%):</b></td>
-          <td style="padding:9px; border: 1px solid #ccc;">£{{ number_format(($invoice->net_total * 0.20), 2) }}</td>
+          <td style="text-align:left; padding:10px; border: 1px solid #ccc;"><b>VAT (20%):</b></td>
+          <td style="padding:10px; border: 1px solid #ccc;">£{{ number_format(($invoice->net_total * 0.20), 2) }}</td>
         </tr>
 
         <tr>
-          <td style="text-align:left; padding:9px; border: 1px solid #ccc;"><b>Total:</b></td>
-          <td style="padding:9px; border: 1px solid #ccc;">£{{ number_format($invoice->grand_total, 2) }}</td>
+          <td style="text-align:left; padding:10px; border: 1px solid #ccc; border-bottom: 0px;"><b>Total:</b></td>
+          <td style="padding:10px; border: 1px solid #ccc; border-bottom: 0px;">£{{ number_format($invoice->grand_total, 2) }}</td>
         </tr>
       </table>
     </td>
