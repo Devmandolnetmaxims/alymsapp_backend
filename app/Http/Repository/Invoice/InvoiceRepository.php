@@ -14,7 +14,7 @@ use Carbon\Carbon;
 use Auth;
 use PDF;
 
-class InvoiceRepository 
+class InvoiceRepository
 {
     // Create invoice.
     public static function CreateInvoice($eventdata) {
@@ -139,7 +139,7 @@ class InvoiceRepository
         if(count(array_unique($invoiceIds)) > 1) {
             return response()->json(['data' => [], 'status' => 0, 'message' => 'All invoices must be related to same customer.'],400);
         }
-        
+
         // Ckeck if ids are valid.
         $invoiceIds = Invoice::whereIn('id', $request->ids)->pluck('id')->toArray();
         if(count($invoiceIds) != count($request->ids)) {
@@ -157,7 +157,7 @@ class InvoiceRepository
         if($invoiceIsExists) {
             return response()->json(['data' => [], 'status' => 0, 'message' => 'Invoice number already exists.'],400);
         }
-        
+
         // Check is given amount is not exced with ithe selected invoices.
         $invoiceAmounts = Invoice::select('estimates.*', 'invoices.*')->join('jobs', 'jobs.id', '=', 'invoices.job_id')->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')->whereIn('invoices.id', $request->ids)->get();
         $totalPending = 0;
@@ -180,11 +180,11 @@ class InvoiceRepository
         ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
         ->whereIn('invoices.id', $request->ids)
         ->orderByRaw("
-            CASE 
+            CASE
                 WHEN invoices.pay_status = '2' THEN 1
                 WHEN invoices.pay_status = '3' THEN 2
                 WHEN invoices.pay_status = '0' THEN 3
-                ELSE 4 
+                ELSE 4
             END
         ")
         ->get();
@@ -257,7 +257,7 @@ class InvoiceRepository
         } else {
             return response()->json(['data' => [], 'status' => 0, 'message' => 'Something went wrong.'],400);
         }
-    } 
+    }
 
     // Get all invoice.
     public static function AllInvoice($request, $id) {
@@ -266,7 +266,7 @@ class InvoiceRepository
         } else {
             return InvoiceRepository::InvoiceByList($request);
         }
-       
+
     }
 
     // Get invoice by list.
@@ -329,7 +329,7 @@ class InvoiceRepository
                 $totalVat = $invoice->net_vat+$totalVat;
                 $type = "Invoice";
             }
-           
+
             if($invoice->due_date < date('Y-m-d')) {
                 $totalDue = $balance + $totalDue;
             } else {
@@ -352,7 +352,7 @@ class InvoiceRepository
                     $history->message = $type.' paid report gerated by ' . $history->first_name . ' ' . $history->last_name . '.';
                 }
             }
-            
+
             // Services.
             $estimateServices = EstimateService::where('estimate_id', $invoice->estimate_id)->get();
             if(count($estimateServices) > 0) {
@@ -381,7 +381,7 @@ class InvoiceRepository
             'account_number' => '43230643',
             'sort_code' => '20-42-76'
         ];
-        
+
         $invoiceData = [
             'total_pending' => $totalPending,
             'total_vat' => $totalVat,
@@ -428,7 +428,7 @@ class InvoiceRepository
             $balance = $invoice->grand_total - $invoice->amount;
         }
         $invoice->balance = $balance;
-        
+
         // Customers Details.
         $invoice->customer = Customer::withTrashed()->find($invoice->user_id);
         $invoice->services = $estimateData;
@@ -446,7 +446,7 @@ class InvoiceRepository
                 $history->message = 'Invoice paid report genrated by ' . $history->first_name . ' ' . $history->last_name . '.';
             }
         }
-        
+
         // Bank Details
         $invoice->bank_details = [
             'bank_name' => 'BARCLAYS BANK',
@@ -454,7 +454,7 @@ class InvoiceRepository
             'sort_code' => '20-42-76'
         ];
 
-        if($invoice) { 
+        if($invoice) {
             return response()->json(['data' => $invoice, 'status' => 1, 'message' => 'Invoice Data!!'], 200);
         } else {
             return response()->json(['data' => [], 'status' => 1, 'message' => 'No Data Found!!'], 200);
@@ -482,7 +482,7 @@ class InvoiceRepository
             ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
             ->where('invoices.id', $id)
             ->first();
-    
+
         // get customer details.
         $customer = Customer::withTrashed()->find($invoice->user_id);
         $invoice->customerDetails = $customer;
@@ -530,7 +530,7 @@ class InvoiceRepository
             return response()->json(['data' => [], 'status' => 0, 'message' => 'Invoice not found.'], 404);
         }
     }
-    
+
 
     // Send invoice through mail.
     public static function SendInvoice($request) {
@@ -551,7 +551,7 @@ class InvoiceRepository
             return response()->json(['data' => [], 'status' => 0, 'message' => 'Invoice not sent.'],200);
         }
     }
-  
+
     // Delete invoice.
     public static function DeleteInvoice($request)
     {
