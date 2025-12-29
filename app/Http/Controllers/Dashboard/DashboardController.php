@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 class DashboardController extends Controller
 {
     // get dashboard data.
-    public function getDashboardData() {
-        return DashboardRepository::GetDashboardData();
+    public function getDashboardData(Request $request) {
+        return DashboardRepository::GetDashboardData($request);
     }
 }
