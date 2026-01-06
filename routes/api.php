@@ -91,6 +91,7 @@ Route::middleware('auth:api')->group(function () {
     Route::put('job/{id}', [JobController::class, 'updateJob']);
     Route::delete('job/{id}', [JobController::class, 'deleteJob']);
     Route::post('job/convertjob', [JobController::class, 'jobConvert']);
+    Route::get('/job/{id}/history', [JobController::class, 'jobHistory']);
 
     // Comment apis.
     Route::get('comment', [CommentController::class, 'allComment']);

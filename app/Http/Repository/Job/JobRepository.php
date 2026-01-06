@@ -556,11 +556,213 @@ class JobRepository
     //     return response()->json(['data' => $jobs, 'status' => 1, 'message' => 'Job List'], 200);
     // }
 
+    // public static function AllJob($request, $id = null)
+    // {
+    //     if ($request->has('per_page') && !empty($request->per_page)) {
+    //         //With pagination.
+    //         if ($request->has('status') && !empty($request->status) && ($request->status == Job::JOB_ONSITE || $request->status == Job::JOB_INPROGRESS || $request->status == Job::JOB_DONE || $request->status == Job::JOB_COLLECT)) {
+    //             $jobs = Job::select('jobs.*', 'estimates.module')
+    //                 ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
+    //                 ->join('customer', 'customer.id', '=', 'estimates.user_id')
+    //                 ->join('vehicle_make', 'vehicle_make.id', '=', 'estimates.make_id')
+    //                 ->join('vehicle_model', 'vehicle_model.id', '=', 'estimates.model_id')
+    //                 ->where('jobs.status', $request->status);
+
+    //             // 🔍 SEARCH FILTER
+    //             if ($request->has('search') && !empty($request->search)) {
+    //                 $jobs = $jobs->where(function ($q) use ($request) {
+    //                     $q->where('customer.first_name', 'LIKE', "%{$request->search}%")
+    //                         ->orWhere('customer.last_name', 'LIKE', "%{$request->search}%")
+    //                         ->orWhere('customer.phone', 'LIKE', "%{$request->search}%")
+    //                         ->orWhere('estimates.registration', 'LIKE', "%{$request->search}%")
+    //                         ->orWhere('vehicle_make.make', 'LIKE', "%{$request->search}%")
+    //                         ->orWhere('vehicle_model.model', 'LIKE', "%{$request->search}%");
+    //                 });
+    //             }
+
+
+
+    //             // if ($request->has('search') && !empty($request->search)) {
+    //             //     $jobs = $jobs->where(function ($query) use ($request) {
+    //             //         $query->where('first_name', 'LIKE', "%$request->search%")
+    //             //             ->orWhere('last_name', 'LIKE', "%$request->search%");
+    //             //     });
+    //             // }
+    //             if ($request->has('customer_id') && !empty($request->customer_id)) {
+    //                 $jobs = $jobs->where('customer.id', $request->customer_id);
+    //             }
+    //             if ($request->has('start_date') && !empty($request->start_date) && $request->has('end_date') && !empty($request->end_date)) {
+    //                 $jobs = $jobs
+    //                     ->whereBetween('jobs.created_at', [$request->start_date, $request->end_date]);
+    //             }
+    //             $jobs = $jobs->orderBy('updated_at', 'desc')->paginate($request->per_page);
+    //         } elseif ($id) {
+    //             $jobs = Job::select('jobs.id as id', 'estimates.id as estimate_id', 'estimates.module')
+    //                 ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
+    //                 ->where(['jobs.id' => $id])
+    //                 ->orderBy('jobs.updated_at', 'desc')
+    //                 ->paginate($request->per_page);
+    //         }
+    //     } else {
+    //         //Without pagination.
+    //         if ($request->has('status') && !empty($request->status) && ($request->status == Job::JOB_ONSITE || $request->status == Job::JOB_INPROGRESS || $request->status == Job::JOB_DONE || $request->status == Job::JOB_COLLECT)) {
+    //             if (Auth::user()->roles[0]->id == 2) {
+    //                 $jobs = Job::select('jobs.*', 'estimates.module')
+    //                     ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
+    //                     ->join('customer', 'customer.id', '=', 'estimates.user_id')
+    //                     ->join('vehicle_make', 'vehicle_make.id', '=', 'estimates.make_id')
+    //                     ->join('vehicle_model', 'vehicle_model.id', '=', 'estimates.model_id')
+    //                     ->where('jobs.status', $request->status);
+    //             } else {
+    //                 $jobs = Job::select('jobs.*', 'estimates.module')
+    //                     ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
+    //                     ->join('customer', 'customer.id', '=', 'estimates.user_id')
+    //                     ->join('vehicle_make', 'vehicle_make.id', '=', 'estimates.make_id')
+    //                     ->join('vehicle_model', 'vehicle_model.id', '=', 'estimates.model_id')
+    //                     ->where('jobs.status', $request->status)
+    //                     ->whereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
+    //             }
+
+    //             // 🔍 SEARCH FILTER
+    //             if ($request->has('search') && !empty($request->search)) {
+    //                 $jobs = $jobs->where(function ($q) use ($request) {
+    //                     $q->where('customer.first_name', 'LIKE', "%{$request->search}%")
+    //                         ->orWhere('customer.last_name', 'LIKE', "%{$request->search}%")
+    //                         ->orWhere('customer.phone', 'LIKE', "%{$request->search}%")
+    //                         ->orWhere('estimates.registration', 'LIKE', "%{$request->search}%")
+    //                         ->orWhere('vehicle_make.make', 'LIKE', "%{$request->search}%")
+    //                         ->orWhere('vehicle_model.model', 'LIKE', "%{$request->search}%");
+    //                 });
+    //             }
+
+    //             // if ($request->has('search') && !empty($request->search)) {
+    //             //     $jobs = $jobs->where(function ($query) use ($request) {
+    //             //         $query->where('first_name', 'LIKE', "%$request->search%")
+    //             //             ->orWhere('last_name', 'LIKE', "%$request->search%");
+    //             //     });
+    //             // }
+    //             if ($request->has('customer_id') && !empty($request->customer_id)) {
+    //                 $jobs = $jobs->where('customer.id', $request->customer_id);
+    //             }
+    //             if ($request->has('start_date') && !empty($request->start_date) && $request->has('end_date') && !empty($request->end_date)) {
+    //                 $jobs = $jobs
+    //                     ->whereBetween('jobs.created_at', [$request->start_date, $request->end_date]);
+    //             }
+    //             $jobs = $jobs->orderBy('updated_at', 'desc')->get();
+    //         } elseif ($id) {
+    //             $jobs = Job::select('jobs.id as id', 'jobs.*', 'estimates.id as estimate_id', 'estimates.module')->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')->where(['jobs.id' => $id])->orderBy('jobs.updated_at', 'desc')->get();
+    //         }
+    //     }
+    //     foreach ($jobs as $job) {
+    //         // Get cutomer details.
+    //         $customer = Customer::select('customer.*')->join('estimates', 'estimates.user_id', '=', 'customer.id')->where('estimates.id', $job->estimate_id)->first();
+    //         if ($customer != null) {
+    //             $job->customer = $customer;
+    //             // Set services.
+    //             $job->services = EstimateService::where('estimate_id', $job->estimate_id)->get();
+    //             foreach ($job->services as $service) {
+    //                 if ($service->service_id != null) {
+    //                     $service->service_id = Service::where('id', $service->service_id)->first();
+    //                 } else {
+    //                     $service->service_id = $service->temp_service;
+    //                 }
+    //             }
+
+    //             // Set estimate data.
+    //             $estimateData = Estimate::where('id', $job->estimate_id)->first();
+    //             $job->estimateData = $estimateData;
+    //             // Set make.
+    //             $job->make = VehicleMake::where('id', $estimateData->make_id)->first();
+
+    //             //Set model.
+    //             $job->model = VehicleModel::where('id', $estimateData->model_id)->first();
+
+    //             // Jon or estimate created by.
+    //             $createdBy = User::select('first_name', 'last_name')->where('id', $estimateData->created_by)->first();
+    //             $estimateData->created_by =  $createdBy->first_name . " " . $createdBy->last_name;
+
+    //             // files
+    //             if (!empty($estimateData->files)) {
+    //                 $files = explode(",", $estimateData->files);
+    //                 if (!empty($estimateData->files)) {
+    //                     foreach ($files as $file) {
+    //                         $filedata = File::find($file);
+    //                         if (!empty($filedata)) {
+    //                             $image[] = [
+    //                                 'id' => $filedata->id,
+    //                                 'path' => url(Storage::url($filedata->path)),
+    //                             ];
+    //                         }
+    //                     }
+    //                     if (!empty($image)) {
+    //                         $job->estimateData->filesData = $image;
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //         // Get team members details.
+    //         if ($job->team) {
+    //             $teams = explode(",", $job->team);
+    //             $members = [];
+    //             foreach ($teams as $team) {
+    //                 $member = User::where('id', $team)->first();
+    //                 if ($member != null) {
+    //                     $memberData['id'] = $member->id;
+    //                     $memberData['first_name'] = $member->first_name;
+    //                     $memberData['last_name'] = $member->last_name;
+    //                 } else {
+    //                     $memberData = null;
+    //                 }
+    //                 $members[] = $memberData;
+    //             }
+    //         } else {
+    //             $members = [];
+    //         }
+    //         $job->team_members = $members;
+
+    //         //Get job log.
+    //         $data = [
+    //             'activity' => [$job->module],
+    //             'instance_id' => $job->id,
+    //         ];
+    //         $logs = LogRepository::GetLog($data);
+    //         // Make message for log show.
+
+    //         foreach ($logs as $log) {
+
+    //             $user = User::find($log->user_id);
+    //             // $roleName = $user->getRoleNames();
+    //             $module = Module::find($log->activity);
+
+    //             // $log['message'] = $user->first_name. " " . $user->last_name. " has " .  $log->action. " " . $module->module;
+
+    //             $log['message'] = ($user ? $user->first_name . " " . $user->last_name : 'Unknown User')
+    //                 . " has " . $log->action
+    //                 . " " . ($module ? $module->module : 'Unknown Module');
+
+    //             $logdata[] = $log;
+    //         }
+    //         if (empty($logdata)) {
+    //             $job->logs = [];
+    //         } else {
+    //             $job->logs = $logdata;
+    //         }
+    //     }
+    //     return response()->json(['data' => $jobs, 'status' => 1, 'message' => 'Job List'], 200);
+    // }
+
     public static function AllJob($request, $id = null)
     {
-        if ($request->has('per_page') && !empty($request->per_page)) {
-            //With pagination.
-            if ($request->has('status') && !empty($request->status) && ($request->status == Job::JOB_ONSITE || $request->status == Job::JOB_INPROGRESS || $request->status == Job::JOB_DONE || $request->status == Job::JOB_COLLECT)) {
+        $jobs = collect();
+
+        if ($request->filled('per_page') && !empty($request->per_page)) {
+            // With pagination
+            if ($request->filled('status') && in_array($request->status, [
+                Job::JOB_ONSITE,
+                Job::JOB_INPROGRESS,
+                Job::JOB_DONE,
+                Job::JOB_COLLECT
+            ])) {
                 $jobs = Job::select('jobs.*', 'estimates.module')
                     ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
                     ->join('customer', 'customer.id', '=', 'estimates.user_id')
@@ -568,9 +770,19 @@ class JobRepository
                     ->join('vehicle_model', 'vehicle_model.id', '=', 'estimates.model_id')
                     ->where('jobs.status', $request->status);
 
-                // 🔍 SEARCH FILTER
-                if ($request->has('search') && !empty($request->search)) {
-                    $jobs = $jobs->where(function ($q) use ($request) {
+                // ADD ONLY THIS LINE
+                self::applyCommonFilters($jobs, $request);
+
+                if (Auth::user()->roles[0]->id != 2) {
+                    $jobs->where(function ($q) {
+                        $q->whereNull('team')
+                            ->orWhere('team', '')
+                            ->orWhereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
+                    });
+                }
+
+                if ($request->filled('search')) {
+                    $jobs->where(function ($q) use ($request) {
                         $q->where('customer.first_name', 'LIKE', "%{$request->search}%")
                             ->orWhere('customer.last_name', 'LIKE', "%{$request->search}%")
                             ->orWhere('customer.phone', 'LIKE', "%{$request->search}%")
@@ -580,52 +792,49 @@ class JobRepository
                     });
                 }
 
-
-
-                // if ($request->has('search') && !empty($request->search)) {
-                //     $jobs = $jobs->where(function ($query) use ($request) {
-                //         $query->where('first_name', 'LIKE', "%$request->search%")
-                //             ->orWhere('last_name', 'LIKE', "%$request->search%");
-                //     });
-                // }
-                if ($request->has('customer_id') && !empty($request->customer_id)) {
-                    $jobs = $jobs->where('customer.id', $request->customer_id);
+                if ($request->filled('customer_id')) {
+                    $jobs->where('customer.id', $request->customer_id);
                 }
-                if ($request->has('start_date') && !empty($request->start_date) && $request->has('end_date') && !empty($request->end_date)) {
-                    $jobs = $jobs
-                        ->whereBetween('jobs.created_at', [$request->start_date, $request->end_date]);
+
+                if ($request->filled('start_date') && $request->filled('end_date')) {
+                    $jobs->whereBetween('jobs.created_at', [$request->start_date, $request->end_date]);
                 }
+
                 $jobs = $jobs->orderBy('updated_at', 'desc')->paginate($request->per_page);
             } elseif ($id) {
                 $jobs = Job::select('jobs.id as id', 'estimates.id as estimate_id', 'estimates.module')
                     ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
-                    ->where(['jobs.id' => $id])
-                    ->orderBy('jobs.updated_at', 'desc')
+                    ->where('jobs.id', $id)
                     ->paginate($request->per_page);
             }
         } else {
-            //Without pagination.
-            if ($request->has('status') && !empty($request->status) && ($request->status == Job::JOB_ONSITE || $request->status == Job::JOB_INPROGRESS || $request->status == Job::JOB_DONE || $request->status == Job::JOB_COLLECT)) {
-                if (Auth::user()->roles[0]->id == 2) {
-                    $jobs = Job::select('jobs.*', 'estimates.module')
-                        ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
-                        ->join('customer', 'customer.id', '=', 'estimates.user_id')
-                        ->join('vehicle_make', 'vehicle_make.id', '=', 'estimates.make_id')
-                        ->join('vehicle_model', 'vehicle_model.id', '=', 'estimates.model_id')
-                        ->where('jobs.status', $request->status);
-                } else {
-                    $jobs = Job::select('jobs.*', 'estimates.module')
-                        ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
-                        ->join('customer', 'customer.id', '=', 'estimates.user_id')
-                        ->join('vehicle_make', 'vehicle_make.id', '=', 'estimates.make_id')
-                        ->join('vehicle_model', 'vehicle_model.id', '=', 'estimates.model_id')
-                        ->where('jobs.status', $request->status)
-                        ->whereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
+            // Without pagination
+            if ($request->filled('status') && in_array($request->status, [
+                Job::JOB_ONSITE,
+                Job::JOB_INPROGRESS,
+                Job::JOB_DONE,
+                Job::JOB_COLLECT
+            ])) {
+                $jobs = Job::select('jobs.*', 'estimates.module')
+                    ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
+                    ->join('customer', 'customer.id', '=', 'estimates.user_id')
+                    ->join('vehicle_make', 'vehicle_make.id', '=', 'estimates.make_id')
+                    ->join('vehicle_model', 'vehicle_model.id', '=', 'estimates.model_id')
+                    ->where('jobs.status', $request->status);
+
+                // 🔽 ADD ONLY THIS LINE
+                self::applyCommonFilters($jobs, $request);
+
+                if (Auth::user()->roles[0]->id != 2) {
+                    $jobs->where(function ($q) {
+                        $q->whereNull('team')
+                            ->orWhere('team', '')
+                            ->orWhereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
+                    });
                 }
 
-                // 🔍 SEARCH FILTER
-                if ($request->has('search') && !empty($request->search)) {
-                    $jobs = $jobs->where(function ($q) use ($request) {
+                if ($request->filled('search')) {
+                    $jobs->where(function ($q) use ($request) {
                         $q->where('customer.first_name', 'LIKE', "%{$request->search}%")
                             ->orWhere('customer.last_name', 'LIKE', "%{$request->search}%")
                             ->orWhere('customer.phone', 'LIKE', "%{$request->search}%")
@@ -635,120 +844,170 @@ class JobRepository
                     });
                 }
 
-                // if ($request->has('search') && !empty($request->search)) {
-                //     $jobs = $jobs->where(function ($query) use ($request) {
-                //         $query->where('first_name', 'LIKE', "%$request->search%")
-                //             ->orWhere('last_name', 'LIKE', "%$request->search%");
-                //     });
-                // }
-                if ($request->has('customer_id') && !empty($request->customer_id)) {
-                    $jobs = $jobs->where('customer.id', $request->customer_id);
+                if ($request->filled('customer_id')) {
+                    $jobs->where('customer.id', $request->customer_id);
                 }
-                if ($request->has('start_date') && !empty($request->start_date) && $request->has('end_date') && !empty($request->end_date)) {
-                    $jobs = $jobs
-                        ->whereBetween('jobs.created_at', [$request->start_date, $request->end_date]);
+
+                if ($request->filled('start_date') && $request->filled('end_date')) {
+                    $jobs->whereBetween('jobs.created_at', [$request->start_date, $request->end_date]);
                 }
+
                 $jobs = $jobs->orderBy('updated_at', 'desc')->get();
             } elseif ($id) {
-                $jobs = Job::select('jobs.id as id', 'jobs.*', 'estimates.id as estimate_id', 'estimates.module')->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')->where(['jobs.id' => $id])->orderBy('jobs.updated_at', 'desc')->get();
+                $jobs = Job::select('jobs.id as id', 'jobs.*', 'estimates.id as estimate_id', 'estimates.module')
+                    ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
+                    ->where('jobs.id', $id)
+                    ->orderBy('jobs.updated_at', 'desc')
+                    ->get();
             }
         }
-        foreach ($jobs as $job) {
-            // Get cutomer details.
-            $customer = Customer::select('customer.*')->join('estimates', 'estimates.user_id', '=', 'customer.id')->where('estimates.id', $job->estimate_id)->first();
-            if ($customer != null) {
-                $job->customer = $customer;
-                // Set services.
-                $job->services = EstimateService::where('estimate_id', $job->estimate_id)->get();
-                foreach ($job->services as $service) {
-                    if ($service->service_id != null) {
-                        $service->service_id = Service::where('id', $service->service_id)->first();
-                    } else {
-                        $service->service_id = $service->temp_service;
-                    }
-                }
 
-                // Set estimate data.
-                $estimateData = Estimate::where('id', $job->estimate_id)->first();
-                $job->estimateData = $estimateData;
-                // Set make.
-                $job->make = VehicleMake::where('id', $estimateData->make_id)->first();
+        // ===== Fallback: No status & no ID =====
+        if ($jobs->count() === 0 && !$request->filled('status') && !$id) {
+            $query = Job::select('jobs.*', 'estimates.module')
+                ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
+                ->join('customer', 'customer.id', '=', 'estimates.user_id')
+                ->join('vehicle_make', 'vehicle_make.id', '=', 'estimates.make_id')
+                ->join('vehicle_model', 'vehicle_model.id', '=', 'estimates.model_id')
+                ->orderBy('jobs.updated_at', 'desc');
 
-                //Set model.
-                $job->model = VehicleModel::where('id', $estimateData->model_id)->first();
+            // ADD ONLY THIS LINE
+            self::applyCommonFilters($query, $request);
 
-                // Jon or estimate created by.
-                $createdBy = User::select('first_name', 'last_name')->where('id', $estimateData->created_by)->first();
-                $estimateData->created_by =  $createdBy->first_name . " " . $createdBy->last_name;
-
-                // files
-                if (!empty($estimateData->files)) {
-                    $files = explode(",", $estimateData->files);
-                    if (!empty($estimateData->files)) {
-                        foreach ($files as $file) {
-                            $filedata = File::find($file);
-                            if (!empty($filedata)) {
-                                $image[] = [
-                                    'id' => $filedata->id,
-                                    'path' => url(Storage::url($filedata->path)),
-                                ];
-                            }
-                        }
-                        if (!empty($image)) {
-                            $job->estimateData->filesData = $image;
-                        }
-                    }
-                }
+            if (Auth::user()->roles[0]->id != 2) {
+                $query->where(function ($q) {
+                    $q->whereNull('team')
+                        ->orWhere('team', '')
+                        ->orWhereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
+                });
             }
-            // Get team members details.
-            if ($job->team) {
-                $teams = explode(",", $job->team);
-                $members = [];
-                foreach ($teams as $team) {
-                    $member = User::where('id', $team)->first();
-                    if ($member != null) {
-                        $memberData['id'] = $member->id;
-                        $memberData['first_name'] = $member->first_name;
-                        $memberData['last_name'] = $member->last_name;
-                    } else {
-                        $memberData = null;
+
+            $jobs = $request->filled('per_page') ? $query->paginate($request->per_page) : $query->get();
+        }
+
+        // ========================== ENRICH JOB DATA ==========================
+        foreach ($jobs as $job) {
+            // Customer
+            $customer = Customer::select('customer.*')
+                ->join('estimates', 'estimates.user_id', '=', 'customer.id')
+                ->where('estimates.id', $job->estimate_id)
+                ->first();
+            $job->customer = $customer;
+
+            // Services
+            $job->services = EstimateService::where('estimate_id', $job->estimate_id)->get();
+            foreach ($job->services as $service) {
+                $service->service_id = $service->service_id ? Service::find($service->service_id) : $service->temp_service;
+            }
+
+            // Estimate, Make, Model, Created by
+            $estimateData = Estimate::find($job->estimate_id);
+            $job->estimateData = $estimateData;
+
+            if ($estimateData) {
+                $job->make = VehicleMake::find($estimateData->make_id);
+                $job->model = VehicleModel::find($estimateData->model_id);
+                $createdBy = User::find($estimateData->created_by);
+                $estimateData->created_by = $createdBy ? $createdBy->first_name . ' ' . $createdBy->last_name : null;
+
+                // Files
+                if (!empty($estimateData->files)) {
+                    $files = explode(',', $estimateData->files);
+                    $image = [];
+                    foreach ($files as $file) {
+                        $filedata = File::find($file);
+                        if ($filedata) {
+                            $image[] = ['id' => $filedata->id, 'path' => url(Storage::url($filedata->path))];
+                        }
                     }
-                    $members[] = $memberData;
+                    $job->estimateData->filesData = $image;
                 }
             } else {
-                $members = [];
+                // Safe defaults if estimate not found
+                $job->make = null;
+                $job->model = null;
+                $job->estimateData = null;
+            }
+
+            // Team members
+            $members = [];
+            if ($job->team) {
+                foreach (explode(',', $job->team) as $team) {
+                    $member = User::find($team);
+                    $members[] = $member ? ['id' => $member->id, 'first_name' => $member->first_name, 'last_name' => $member->last_name] : null;
+                }
             }
             $job->team_members = $members;
 
-            //Get job log.
-            $data = [
-                'activity' => [$job->module],
-                'instance_id' => $job->id,
-            ];
-            $logs = LogRepository::GetLog($data);
-            // Make message for log show.
-
+            // Logs
+            $logdata = [];
+            $logs = LogRepository::GetLog(['activity' => [$job->module], 'instance_id' => $job->id]);
             foreach ($logs as $log) {
-
                 $user = User::find($log->user_id);
-                // $roleName = $user->getRoleNames();
                 $module = Module::find($log->activity);
-
-                // $log['message'] = $user->first_name. " " . $user->last_name. " has " .  $log->action. " " . $module->module;
-
-                $log['message'] = ($user ? $user->first_name . " " . $user->last_name : 'Unknown User')
-                    . " has " . $log->action
-                    . " " . ($module ? $module->module : 'Unknown Module');
-
+                $log['message'] = ($user ? $user->first_name . ' ' . $user->last_name : 'Unknown User')
+                    . ' has ' . $log->action
+                    . ' ' . ($module ? $module->module : 'Unknown Module');
                 $logdata[] = $log;
             }
-            if (empty($logdata)) {
-                $job->logs = [];
-            } else {
-                $job->logs = $logdata;
-            }
+            $job->logs = $logdata ?: [];
         }
-        return response()->json(['data' => $jobs, 'status' => 1, 'message' => 'Job List'], 200);
+
+
+        return response()->json([
+            'status' => 1,
+            'message' => 'Job List',
+            'count' => is_object($jobs) && method_exists($jobs, 'total') ? $jobs->total() : $jobs->count(),
+            'data' => $jobs,
+        ], 200);
+    }
+
+    private static function applyCommonFilters($query, $request)
+    {
+        // Customer Name (first, last, or full name)
+        if ($request->filled('customer_name')) {
+            $name = trim($request->customer_name);
+
+            $query->where(function ($q) use ($name) {
+
+                // Full name search (e.g. "Md Imtiyaj")
+                if (str_contains($name, ' ')) {
+                    $parts = array_filter(explode(' ', $name));
+
+                    $q->where(function ($sub) use ($parts) {
+                        $sub->where('customer.first_name', 'LIKE', '%' . $parts[0] . '%')
+                            ->where('customer.last_name', 'LIKE', '%' . end($parts) . '%');
+                    });
+                }
+
+                // First OR last name search
+                $q->orWhere('customer.first_name', 'LIKE', "%{$name}%")
+                ->orWhere('customer.last_name', 'LIKE', "%{$name}%");
+            });
+        }
+
+
+        // Registration Number
+        if ($request->filled('registration_no')) {
+            $query->where('estimates.registration', 'LIKE', "%{$request->registration_no}%");
+        }
+
+        // Vehicle Make
+        if ($request->filled('make_id')) {
+            $query->where('vehicle_make.id', $request->make_id);
+        }
+
+        // Vehicle Model
+        if ($request->filled('model_id')) {
+            $query->where('vehicle_model.id', $request->model_id);
+        }
+
+        // Date Range
+        if ($request->filled('date')) {
+            $query->where('jobs.updated_at', 'LIKE', "%{$request->date}%");
+        }
+
+        return $query; // important: does NOT modify logic flow
     }
 
     public static function UpdateStatus($request, $id)
@@ -885,4 +1144,27 @@ class JobRepository
             return response()->json(['data' => [], 'status' => 0, 'message' => 'Un-progressable data'], 422);
         }
     }
+
+    public static function getJobHistory($jobId, $module)
+    {
+        $history = [];
+
+        $logs = LogRepository::GetLog([
+            'activity' => [$module],
+            'instance_id' => $jobId,
+        ]);
+
+        foreach ($logs as $log) {
+            // Include only status-like actions (skip 'Create', etc.)
+            if (in_array($log->action, ['Onsite', 'In Progress', 'Compeleted', 'Collected'])) {
+                $history[] = [
+                    'status' => ucfirst(str_replace('_', ' ', $log->action)),
+                    'datetime' => $log->created_at,
+                ];
+            }
+        }
+
+        return $history;
+    }
+
 }

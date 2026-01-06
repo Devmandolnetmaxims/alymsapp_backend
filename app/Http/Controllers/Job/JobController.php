@@ -8,6 +8,7 @@ use App\Http\Repository\Job\JobRepository;
 use App\Http\Controllers\Controller;
 use App\Http\Repository\Job\AddJob;
 use Illuminate\Http\Request;
+use App\Models\Job;
 
 class JobController extends Controller
 {
@@ -54,4 +55,30 @@ class JobController extends Controller
     public function deleteJob($id) {
         return JobRepository::RemoveJob($id);
     }
+
+    // Job history.
+    public function jobHistory($jobId)
+    {
+        $job = Job::with('estimateData')->findOrFail($jobId);
+
+        $module = $job->estimateData ? $job->estimateData->module : null;
+
+        if(!$module) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Module not found for this job',
+                'data' => []
+            ]);
+        }
+
+        $jobHistory = JobRepository::getJobHistory($job->id, $module);
+
+        return response()->json([
+            'status'  => 1,
+            'message' => 'Job history retrieved successfully',
+            'data'    => $jobHistory
+        ], 200);
+    }
+
+
 }
