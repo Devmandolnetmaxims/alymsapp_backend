@@ -58,6 +58,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('invitation/{id}', [EmployeeController::class, 'invitationSend']);
 
     // Customer Aips.
+    Route::get('customer/{customer}/work-history', [CustomerController::class, 'workHistoryPdf']);
     Route::get('customer/{id??}', [CustomerController::class, 'allCustomer']);
     Route::post('customer', [CustomerController::class, 'createCustomer']);
     Route::put('customer/{id}', [CustomerController::class, 'updateCustomer']);
@@ -112,6 +113,7 @@ Route::middleware('auth:api')->group(function () {
     Route::delete('role/{id}', [RoleController::class, 'deleteRole']);
 
     // Invoice apis
+    Route::get('invoice/export', [InvoiceController::class, 'exportCsv']);
     Route::get('invoice/{id??}', [InvoiceController::class, 'allInvoice']);
     Route::post('invoice/{id??}', [InvoiceController::class, 'createInvoice']);
     Route::put('invoice/{id??}', [InvoiceController::class, 'updateInvoice']);

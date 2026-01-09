@@ -10,6 +10,8 @@ use App\Models\VehicleMake;
 use App\Models\VehicleModel;
 use App\Models\Job;
 use Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\EstimateService;
 
 class CustomerRepository
 {
@@ -217,5 +219,48 @@ class CustomerRepository
         } else {
             return response()->json(['data' => [], 'status' => 0, 'message' => 'Un-progressable data'], 422);
         }
+    }
+
+    public static function workHistoryPdf($customer)
+    {
+        // Fetch invoices for this customer
+        $invoices = Invoice::select(
+                'invoices.*',
+                'estimates.id as estimate_id'
+            )
+            ->join('jobs', 'jobs.id', '=', 'invoices.job_id')
+            ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
+            ->where('estimates.user_id', $customer->id)
+            ->orderBy('invoices.created_at', 'desc')
+            ->get();
+
+        // Prepare work history rows
+        $workHistory = [];
+
+        foreach ($invoices as $invoice) {
+            $services = EstimateService::where('estimate_id', $invoice->estimate_id)->get();
+
+            foreach ($services as $service) {
+                $workHistory[] = [
+                    'date'        => $invoice->created_at->format('d/m/Y'),
+                    'invoice_no'  => $invoice->invoice_number,
+                    'description' => $service->description,
+                    'rate'  => number_format($service->rate, 2),
+                    'cost_price'  => number_format($service->cost_rate, 2),
+                    'amount'      => number_format($service->cost_rate * $service->quantity, 2),
+                    'vat'         => number_format(($service->cost_rate * $service->quantity) * 0.2, 2),
+                ];
+            }
+        }
+
+        $pdf = Pdf::loadView('pdf.customer-work-history', [
+            'customer'    => $customer,
+            'workHistory' => $workHistory,
+            'generatedAt' => now()->format('d/m/Y H:i:s')
+        ]);
+
+        return $pdf->download(
+            'customer_work_history_' . $customer->id . '.pdf'
+        );
     }
 }

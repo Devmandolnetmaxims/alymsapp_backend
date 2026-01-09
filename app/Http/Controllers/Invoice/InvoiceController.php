@@ -32,4 +32,9 @@ class InvoiceController extends Controller
     public function deleteInvoice(Request $request) {
         return InvoiceRepository::DeleteInvoice($request);
     }
+
+    // Export invoice csv.
+    public function exportCsv(Request $request) {
+        return InvoiceRepository::InvoiceExportCsv($request);
+    }
 }
