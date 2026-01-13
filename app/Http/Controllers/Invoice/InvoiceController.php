@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Invoice;
 use App\Http\Repository\Invoice\InvoiceRepository;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Exports\InvoiceExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class InvoiceController extends Controller
 {
@@ -34,7 +36,15 @@ class InvoiceController extends Controller
     }
 
     // Export invoice csv.
-    public function exportCsv(Request $request) {
-        return InvoiceRepository::InvoiceExportCsv($request);
+    // public function exportCsv(Request $request) {
+    //     return InvoiceRepository::InvoiceExportCsv($request);
+    // }
+
+    public function exportCsv(Request $request)
+    {
+        return Excel::download(
+            new InvoiceExport($request),
+            'invoice_export_' . now()->format('Ymd_His') . '.xlsx'
+        );
     }
 }

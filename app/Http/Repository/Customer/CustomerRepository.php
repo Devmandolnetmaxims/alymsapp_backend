@@ -239,6 +239,7 @@ class CustomerRepository
 
         foreach ($invoices as $invoice) {
             $services = EstimateService::where('estimate_id', $invoice->estimate_id)->get();
+            print_r($services); exit;
 
             foreach ($services as $service) {
                 $workHistory[] = [
@@ -249,6 +250,9 @@ class CustomerRepository
                     'cost_price'  => number_format($service->cost_rate, 2),
                     'amount'      => number_format($service->cost_rate * $service->quantity, 2),
                     'vat'         => number_format(($service->cost_rate * $service->quantity) * 0.2, 2),
+                    'due_date'    => $invoice->due_date ? $invoice->due_date->format('d/m/Y') : 'N/A',
+                    'due_amount'  => number_format($invoice->amount_due, 2),
+                    'bill_to'      => $invoice->bill_to,
                 ];
             }
         }

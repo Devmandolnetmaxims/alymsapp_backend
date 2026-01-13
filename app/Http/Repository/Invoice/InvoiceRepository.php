@@ -696,6 +696,113 @@ class InvoiceRepository
         ], 200);
     }
 
+    // public static function InvoiceExportCsv($request)
+    // {
+    //     $fileName = 'invoice_export_' . now()->format('Ymd_His') . '.csv';
+
+    //     $response = new StreamedResponse(function () use ($request) {
+
+    //         $handle = fopen('php://output', 'w');
+
+    //         // ================= CSV HEADER =================
+    //         fputcsv($handle, [
+    //             'Customer Name',
+    //             'Date',
+    //             'Reg No',
+    //             'Make',
+    //             'Model',
+    //             'Service Name',
+    //             'Description',
+    //             'Invoice / Bill No',
+    //             'Type',
+    //             'Cost Price'
+    //         ]);
+
+    //         // ================= SAME FILTER LOGIC =================
+    //         $invoices = Invoice::select(
+    //                 'invoices.*',
+    //                 'estimates.registration',
+    //                 'estimates.make_id',
+    //                 'estimates.model_id',
+    //                 'estimates.id as estimate_id',
+    //                 'estimates.user_id'
+    //             )
+    //             ->join('jobs', 'jobs.id', '=', 'invoices.job_id')
+    //             ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
+    //             ->join('customer', 'customer.id', '=', 'estimates.user_id');
+
+    //         if ($request->filled('search')) {
+    //             $invoices->where(function ($q) use ($request) {
+    //                 $q->where('invoices.invoice_number', 'like', "%{$request->search}%")
+    //                 ->orWhere('customer.first_name', 'like', "%{$request->search}%")
+    //                 ->orWhere('customer.last_name', 'like', "%{$request->search}%")
+    //                 ->orWhere('customer.email', 'like', "%{$request->search}%");
+    //             });
+    //         }
+
+    //         if ($request->filled('customer_id') && $request->customer_id !== 'all') {
+    //             $invoices->where('estimates.user_id', $request->customer_id);
+    //         }
+
+    //         if ($request->filled('status') && $request->status !== 'all') {
+    //             $invoices->where('invoices.pay_status', $request->status);
+    //         }
+
+    //         if ($request->filled('type') && $request->type !== 'all') {
+    //             $invoices->where('invoices.type', $request->type);
+    //         }
+
+    //         if ($request->filled('start_date') && $request->filled('end_date')) {
+    //             $invoices->whereBetween('invoices.created_at', [
+    //                 $request->start_date,
+    //                 $request->end_date
+    //             ]);
+    //         }
+
+    //         $invoices = $invoices->orderBy('invoices.created_at', 'desc')->get();
+
+    //         // ================= DATA ROWS =================
+    //         foreach ($invoices as $invoice) {
+
+    //             $customer = Customer::withTrashed()->find($invoice->user_id);
+    //             $services = EstimateService::where('estimate_id', $invoice->estimate_id)->get();
+
+    //             foreach ($services as $service) {
+
+    //                 $serviceName = $service->service_id
+    //                     ? optional(Service::find($service->service_id))->service
+    //                     : $service->temp_service;
+
+    //                 $make = optional(VehicleMake::find($invoice->make_id))->make;
+    //                 $model = optional(VehicleModel::find($invoice->model_id))->model;
+
+    //                 fputcsv($handle, [
+    //                     trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')),
+    //                     $invoice->created_at->format('Y-m-d'),
+    //                     $invoice->registration,
+    //                     $make,
+    //                     $model,
+    //                     $serviceName,
+    //                     $service->description,
+    //                     $invoice->invoice_number,
+    //                     $invoice->type == Invoice::BILL ? 'BILL' : 'INV',
+    //                     $service->cost_rate ?? 0
+    //                 ]);
+    //             }
+    //         }
+
+    //         fclose($handle);
+    //     });
+
+    //     $response->headers->set('Content-Type', 'text/csv');
+    //     $response->headers->set('Content-Disposition', "attachment; filename={$fileName}");
+    //     $response->headers->set('Pragma', 'no-cache');
+    //     $response->headers->set('Cache-Control', 'must-revalidate');
+
+    //     return $response;
+
+    // }
+
     public static function InvoiceExportCsv($request)
     {
         $fileName = 'invoice_export_' . now()->format('Ymd_His') . '.csv';
@@ -706,7 +813,6 @@ class InvoiceRepository
 
             // ================= CSV HEADER =================
             fputcsv($handle, [
-                'Customer Name',
                 'Date',
                 'Reg No',
                 'Make',
@@ -715,17 +821,24 @@ class InvoiceRepository
                 'Description',
                 'Invoice / Bill No',
                 'Type',
-                'Cost Price'
+                'Rate',
+                'Cost Price',
+                'Total Rate',
+                'Total Cost Price',
+                'Due Date',
+                'Bill',
+                'VAT',
+                'Total',
+                'Due Balance'
             ]);
 
-            // ================= SAME FILTER LOGIC =================
+            // ================= FILTER LOGIC =================
             $invoices = Invoice::select(
                     'invoices.*',
                     'estimates.registration',
                     'estimates.make_id',
                     'estimates.model_id',
-                    'estimates.id as estimate_id',
-                    'estimates.user_id'
+                    'estimates.id as estimate_id'
                 )
                 ->join('jobs', 'jobs.id', '=', 'invoices.job_id')
                 ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
@@ -764,8 +877,20 @@ class InvoiceRepository
             // ================= DATA ROWS =================
             foreach ($invoices as $invoice) {
 
-                $customer = Customer::withTrashed()->find($invoice->user_id);
                 $services = EstimateService::where('estimate_id', $invoice->estimate_id)->get();
+
+                if ($services->isEmpty()) {
+                    continue;
+                }
+
+                $make  = optional(VehicleMake::find($invoice->make_id))->make;
+                $model = optional(VehicleModel::find($invoice->model_id))->model;
+
+                // Totals calculated once per invoice
+                $totalRate = $services->sum('rate');
+                $totalCost = $services->sum('cost_rate');
+
+                $firstRow = true;
 
                 foreach ($services as $service) {
 
@@ -773,11 +898,7 @@ class InvoiceRepository
                         ? optional(Service::find($service->service_id))->service
                         : $service->temp_service;
 
-                    $make = optional(VehicleMake::find($invoice->make_id))->make;
-                    $model = optional(VehicleModel::find($invoice->model_id))->model;
-
                     fputcsv($handle, [
-                        trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')),
                         $invoice->created_at->format('Y-m-d'),
                         $invoice->registration,
                         $make,
@@ -786,8 +907,20 @@ class InvoiceRepository
                         $service->description,
                         $invoice->invoice_number,
                         $invoice->type == Invoice::BILL ? 'BILL' : 'INV',
-                        $service->cost_rate ?? 0
+                        $service->rate ?? 0,
+                        $service->cost_rate ?? 0,
+
+                        // Totals only once per invoice
+                        $firstRow ? $totalRate : '',
+                        $firstRow ? $totalCost : '',
+                        $firstRow ? optional($invoice->due_date)->format('Y-m-d') : '',
+                        $firstRow ? ($invoice->bill_amount ?? 0) : '',
+                        $firstRow ? ($invoice->vat_amount ?? 0) : '',
+                        $firstRow ? ($invoice->grand_total ?? 0) : '',
+                        $firstRow ? ($invoice->due_balance ?? 0) : '',
                     ]);
+
+                    $firstRow = false;
                 }
             }
 
@@ -800,6 +933,6 @@ class InvoiceRepository
         $response->headers->set('Cache-Control', 'must-revalidate');
 
         return $response;
-
     }
+
 }

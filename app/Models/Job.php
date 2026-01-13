@@ -24,4 +24,9 @@ class Job extends Model
     {
         return $this->belongsTo(Estimate::class, 'estimate_id', 'id');
     }
+
+    public function estimate()
+    {
+        return $this->belongsTo(Estimate::class);
+    }
 }

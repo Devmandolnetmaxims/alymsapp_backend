@@ -37,11 +37,10 @@ class MotController extends Controller
         // Step 1: Get token
         $token = $this->getAccessToken();
         if (is_object($token)) {
-            // Means an error JSON was returned
             return $token;
         }
 
-        // Step 2: Make API request
+        // Step 2: Make MOT API request
         $url = "https://history.mot.api.gov.uk/v1/trade/vehicles/registration/" . strtoupper($registration);
 
         $response = Http::withHeaders([
@@ -50,9 +49,23 @@ class MotController extends Controller
             'Accept' => 'application/json+v6',
         ])->get($url);
 
-        // Step 3: Handle responses
+        // Step 3: Handle MOT responses
         if ($response->status() === 200) {
-            return response()->json($response->json(), 200);
+
+            $motData = $response->json();
+
+            // 🔹 NEW: Fetch tax data from DVLA
+            $taxData = $this->fetchTaxData($registration);
+            if (is_object($taxData)) {
+                return $taxData;
+            }
+
+            // 🔹 NEW: Append tax fields (do NOT change existing data)
+            $motData['taxStatus']  = $taxData['taxStatus'] ?? null;
+            $motData['taxDueDate'] = $taxData['taxDueDate'] ?? null;
+
+            return response()->json($motData, 200);
+
         } elseif ($response->status() === 404) {
             return response()->json(['message' => "No MOT records found for {$registration}."], 404);
         } elseif ($response->status() === 403) {
@@ -65,4 +78,61 @@ class MotController extends Controller
             'details' => $response->body(),
         ], $response->status());
     }
+
+    // public function fetchMotData($registration)
+    // {
+    //     // Step 1: Get token
+    //     $token = $this->getAccessToken();
+    //     if (is_object($token)) {
+    //         // Means an error JSON was returned
+    //         return $token;
+    //     }
+
+    //     // Step 2: Make API request
+    //     $url = "https://history.mot.api.gov.uk/v1/trade/vehicles/registration/" . strtoupper($registration);
+
+    //     $response = Http::withHeaders([
+    //         'Authorization' => "Bearer {$token}",
+    //         'X-API-Key' => env('MOT_API_KEY'),
+    //         'Accept' => 'application/json+v6',
+    //     ])->get($url);
+
+    //     // Step 3: Handle responses
+    //     if ($response->status() === 200) {
+    //         return response()->json($response->json(), 200);
+    //     } elseif ($response->status() === 404) {
+    //         return response()->json(['message' => "No MOT records found for {$registration}."], 404);
+    //     } elseif ($response->status() === 403) {
+    //         return response()->json(['message' => 'Forbidden – check your API key or token permissions.'], 403);
+    //     }
+
+    //     return response()->json([
+    //         'error' => 'Unknown error',
+    //         'status' => $response->status(),
+    //         'details' => $response->body(),
+    //     ], $response->status());
+    // }
+
+    private function fetchTaxData($registration)
+    {
+        $response = Http::withHeaders([
+            'x-api-key' => env('DVLA_API_KEY'),
+            'Content-Type' => 'application/json',
+        ])->post(env('DVLA_API_URL'), [
+            'registrationNumber' => strtoupper($registration),
+        ]);
+
+
+        if (!$response->successful()) {
+            return response()->json([
+                'error' => 'Failed to fetch tax data',
+                'details' => $response->json(),
+                'status' => $response->status(),
+                'raw_response' => $response->body(), // 👈 IMPORTANT
+            ], $response->status());
+        }
+
+        return $response->json();
+    }
+
 }

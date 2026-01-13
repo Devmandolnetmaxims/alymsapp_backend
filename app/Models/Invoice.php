@@ -44,4 +44,9 @@ class Invoice extends Model
     const CREDIT_CARD = '2';
     const CASH_ADVANCE = '3';
     const ONLINE = '4';
+
+    public function job()
+    {
+        return $this->belongsTo(Job::class);
+    }
 }
