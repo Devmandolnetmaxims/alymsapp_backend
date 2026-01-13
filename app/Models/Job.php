@@ -19,4 +19,14 @@ class Job extends Model
     const COLLECT = "Collected";
     
     protected $guarded = [];
+    
+    public function estimateData()
+    {
+        return $this->belongsTo(Estimate::class, 'estimate_id', 'id');
+    }
+
+    public function estimate()
+    {
+        return $this->belongsTo(Estimate::class);
+    }
 }
