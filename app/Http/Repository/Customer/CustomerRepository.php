@@ -12,6 +12,7 @@ use App\Models\Job;
 use Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\EstimateService;
+use Carbon\Carbon;
 
 class CustomerRepository
 {
@@ -221,46 +222,93 @@ class CustomerRepository
         }
     }
 
-    public static function workHistoryPdf($customer)
+    public static function workHistoryPdf($customer, $request)
     {
-        // Fetch invoices for this customer
-        $invoices = Invoice::select(
+        // Build query
+        $query = Invoice::select(
                 'invoices.*',
                 'estimates.id as estimate_id'
             )
             ->join('jobs', 'jobs.id', '=', 'invoices.job_id')
             ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
-            ->where('estimates.user_id', $customer->id)
-            ->orderBy('invoices.created_at', 'desc')
-            ->get();
+            ->join('customer', 'customer.id', '=', 'estimates.user_id');
 
-        // Prepare work history rows
+        /* =========================
+        FILTERS
+        ==========================*/
+
+        // Filter by customer ID
+        if ($request->has('customer_id') && !empty($request->customer_id) && $request->customer_id !== 'all' && $request->customer_id !== 'null') {
+            $query->where('estimates.user_id', $request->customer_id);
+        }
+
+        // Filter by invoice status
+        if ($request->has('status') && $request->status !== 'all' && $request->status !== 'null') {
+            $query->where('invoices.pay_status', $request->status);
+        }
+
+        // Filter by date range
+        if (
+            $request->has('start_date') && !empty($request->start_date) && $request->start_date !== 'null' &&
+            $request->has('end_date') && !empty($request->end_date) && $request->end_date !== 'null'
+        ) {
+            $query->whereBetween('invoices.created_at', [
+                Carbon::parse($request->start_date)->startOfDay(),
+                Carbon::parse($request->end_date)->endOfDay()
+            ]);
+        }
+
+        $invoices = $query->orderBy('invoices.created_at', 'asc')->get();
+
+        /* =========================
+        WORK HISTORY DATA
+        ==========================*/
+
         $workHistory = [];
+        $totalBill = $totalVat = $totalAmount = $totalDue = 0;
 
         foreach ($invoices as $invoice) {
             $services = EstimateService::where('estimate_id', $invoice->estimate_id)->get();
-            print_r($services); exit;
 
             foreach ($services as $service) {
+                $bill = $service->rate * $service->quantity;
+                $vat = $bill * 0.2; // 20% VAT
+                $total = $bill + $vat;
+
+                $totalBill += $bill;
+                $totalVat += $vat;
+                $totalAmount += $total;
+                $totalDue += $invoice->amount_due;
+
                 $workHistory[] = [
-                    'date'        => $invoice->created_at->format('d/m/Y'),
-                    'invoice_no'  => $invoice->invoice_number,
+                    'date' => Carbon::parse($invoice->created_at)->format('d/m/Y'),
+                    'invoice_no' => $invoice->invoice_number,
+                    // service name
+                    
+                    'service' => $service->service_id
+                        ? optional(Service::find($service->service_id))->service
+                        : $service->temp_service,
                     'description' => $service->description,
-                    'rate'  => number_format($service->rate, 2),
-                    'cost_price'  => number_format($service->cost_rate, 2),
-                    'amount'      => number_format($service->cost_rate * $service->quantity, 2),
-                    'vat'         => number_format(($service->cost_rate * $service->quantity) * 0.2, 2),
-                    'due_date'    => $invoice->due_date ? $invoice->due_date->format('d/m/Y') : 'N/A',
-                    'due_amount'  => number_format($invoice->amount_due, 2),
-                    'bill_to'      => $invoice->bill_to,
+                    'due_date' => $invoice->due_date
+                        ? Carbon::parse($invoice->due_date)->format('d/m/Y')
+                        : 'N/A',
+                    'bill' => number_format($bill, 2),
+                    'vat' => number_format($vat, 2),
+                    'total' => number_format($total, 2),
+                    'due_balance' => number_format($invoice->amount_due, 2),
                 ];
             }
         }
 
+        // Generate PDF
         $pdf = Pdf::loadView('pdf.customer-work-history', [
-            'customer'    => $customer,
+            'customer' => $customer,
             'workHistory' => $workHistory,
-            'generatedAt' => now()->format('d/m/Y H:i:s')
+            'totalBill' => number_format($totalBill, 2),
+            'totalVat' => number_format($totalVat, 2),
+            'totalAmount' => number_format($totalAmount, 2),
+            'totalDue' => number_format($totalDue, 2),
+            'generatedAt' => now()->format('d/m/Y H:i:s'),
         ]);
 
         return $pdf->download(

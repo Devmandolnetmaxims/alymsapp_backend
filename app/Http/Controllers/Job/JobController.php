@@ -63,7 +63,7 @@ class JobController extends Controller
 
         $module = $job->estimateData ? $job->estimateData->module : null;
 
-        if(!$module) {
+        if (!$module) {
             return response()->json([
                 'status' => 0,
                 'message' => 'Module not found for this job',
@@ -72,6 +72,21 @@ class JobController extends Controller
         }
 
         $jobHistory = JobRepository::getJobHistory($job->id, $module);
+
+        // 🔹 Map status name to status ID (controller-only)
+        $statusMap = [
+            'Onsite'       => Job::JOB_ONSITE,
+            'In Progress'  => Job::JOB_INPROGRESS,
+            'Compeleted'   => Job::JOB_DONE,
+            'Collected'    => Job::JOB_COLLECT,
+        ];
+
+        $jobHistory = collect($jobHistory)->map(function ($item) use ($statusMap) {
+            return [
+                'status_id' => $statusMap[$item['status']] ?? null,
+                'datetime'  => $item['datetime'],
+            ];
+        })->values();
 
         return response()->json([
             'status'  => 1,

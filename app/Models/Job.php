@@ -13,6 +13,7 @@ class Job extends Model
     const JOB_INPROGRESS = 2;
     const JOB_DONE = 3;
     const JOB_COLLECT = 4;
+    const ALL_STATUS = 5;
     const ONSITE = "Onsite";
     const INPROGRESS = "In Progress";
     const DONE = "Compeleted";

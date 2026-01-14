@@ -761,14 +761,18 @@ class JobRepository
                 Job::JOB_ONSITE,
                 Job::JOB_INPROGRESS,
                 Job::JOB_DONE,
-                Job::JOB_COLLECT
+                Job::JOB_COLLECT,
+                Job::ALL_STATUS
             ])) {
                 $jobs = Job::select('jobs.*', 'estimates.module')
                     ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
                     ->join('customer', 'customer.id', '=', 'estimates.user_id')
                     ->join('vehicle_make', 'vehicle_make.id', '=', 'estimates.make_id')
-                    ->join('vehicle_model', 'vehicle_model.id', '=', 'estimates.model_id')
-                    ->where('jobs.status', $request->status);
+                    ->join('vehicle_model', 'vehicle_model.id', '=', 'estimates.model_id');
+
+                if ($request->status != 5) { // only filter if not 5
+                    $jobs->where('jobs.status', $request->status);
+                }
 
                 // ADD ONLY THIS LINE
                 self::applyCommonFilters($jobs, $request);
@@ -813,14 +817,18 @@ class JobRepository
                 Job::JOB_ONSITE,
                 Job::JOB_INPROGRESS,
                 Job::JOB_DONE,
-                Job::JOB_COLLECT
+                Job::JOB_COLLECT,
+                Job::ALL_STATUS
             ])) {
                 $jobs = Job::select('jobs.*', 'estimates.module')
                     ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
                     ->join('customer', 'customer.id', '=', 'estimates.user_id')
                     ->join('vehicle_make', 'vehicle_make.id', '=', 'estimates.make_id')
-                    ->join('vehicle_model', 'vehicle_model.id', '=', 'estimates.model_id')
-                    ->where('jobs.status', $request->status);
+                    ->join('vehicle_model', 'vehicle_model.id', '=', 'estimates.model_id');
+
+                if ($request->status != 5) { // only filter if not 5
+                    $jobs->where('jobs.status', $request->status);
+                }
 
                 // 🔽 ADD ONLY THIS LINE
                 self::applyCommonFilters($jobs, $request);
@@ -992,14 +1000,19 @@ class JobRepository
             $query->where('estimates.registration', 'LIKE', "%{$request->registration_no}%");
         }
 
-        // Vehicle Make
-        if ($request->filled('make_id')) {
-            $query->where('vehicle_make.id', $request->make_id);
-        }
+        // Combined Make + Model Name Filter
+        if ($request->filled('vehicle_name')) {
+            $vehicleName = trim($request->vehicle_name);
+            $parts = explode(' ', $vehicleName);
 
-        // Vehicle Model
-        if ($request->filled('model_id')) {
-            $query->where('vehicle_model.id', $request->model_id);
+            $query->where(function ($q) use ($parts) {
+                foreach ($parts as $part) {
+                    $q->where(function ($sub) use ($part) {
+                        $sub->where('vehicle_make.make', 'LIKE', "%{$part}%")
+                            ->orWhere('vehicle_model.model', 'LIKE', "%{$part}%");
+                    });
+                }
+            });
         }
 
         // Date Range
@@ -1007,7 +1020,7 @@ class JobRepository
             $query->where('jobs.updated_at', 'LIKE', "%{$request->date}%");
         }
 
-        return $query; // important: does NOT modify logic flow
+        return $query;
     }
 
     public static function UpdateStatus($request, $id)
