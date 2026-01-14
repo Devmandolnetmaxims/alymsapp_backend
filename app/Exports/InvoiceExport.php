@@ -87,11 +87,32 @@ class InvoiceExport implements FromCollection, WithHeadings, WithEvents, WithSty
                     $service->cost_rate ?? 0,
                     $firstRow ? $totalRate : '',
                     $firstRow ? $totalCost : '',
+                   // 👇 FIXED FIELDS
                     $firstRow ? optional($invoice->due_date)->format('Y-m-d') : '',
-                    $firstRow ? ($invoice->bill_amount ?? 0) : '',
-                    $firstRow ? ($invoice->vat_amount ?? 0) : '',
-                    $firstRow ? ($invoice->grand_total ?? 0) : '',
-                    $firstRow ? ($invoice->due_balance ?? 0) : '',
+
+                    // Bill Amount
+                    $firstRow && $invoice->type == Invoice::BILL
+                        ? $invoice->net_total
+                        : '',
+
+                    // VAT
+                    $firstRow && $invoice->type != Invoice::BILL
+                        ? $invoice->net_vat
+                        : '',
+
+                    // Total
+                    $firstRow
+                        ? ($invoice->type == Invoice::BILL
+                            ? $invoice->net_total
+                            : $invoice->grand_total)
+                        : '',
+
+                    // Due Balance (same logic as API)
+                    $firstRow
+                        ? ($invoice->type == Invoice::BILL
+                            ? ($invoice->net_total - $invoice->amount)
+                            : ($invoice->grand_total - $invoice->amount))
+                        : '',
                 ]);
 
                 $firstRow = false;

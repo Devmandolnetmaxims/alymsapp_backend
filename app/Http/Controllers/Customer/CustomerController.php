@@ -50,7 +50,20 @@ class CustomerController extends Controller
     }
 
     // Customer Work History PDF.
-    public function workHistoryPdf(Customer $customer) {
-        return CustomerRepository::WorkHistoryPdf($customer);
+    public function workHistoryPdf(Request $request)
+    {
+        // Get customer ID from query parameter
+        $customerId = $request->query('customer_id'); // or $request->input('customer_id')
+
+        if (!$customerId) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Customer ID is required.'
+            ], 400);
+        }
+
+        $customer = Customer::findOrFail($customerId);
+
+        return CustomerRepository::workHistoryPdf($customer, $request);
     }
 }
