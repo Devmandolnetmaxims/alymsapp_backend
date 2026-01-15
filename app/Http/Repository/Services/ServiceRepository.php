@@ -60,6 +60,12 @@ class ServiceRepository {
     public static function ServiceListBySearch($request) {
         // with pagination.
         $services = Service::select("services.*");
+
+        // 🔹 NEW: filter by company_type (safe & optional)
+        if ($request->has('company_type') && !empty($request->company_type)) {
+            $services->where('company_type', $request->company_type);
+        }
+        
         if($request->has('per_page') && !empty($request->per_page)) {
             if($request->has('search') && !empty($request->search)) {
                 $services = $services->where('service', 'like', '%' . $request->search . '%');
