@@ -23,6 +23,8 @@ use App\Http\Controllers\MotController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Models\User;
+// use App\Http\Controllers\Vehicle\VehicleController;
+use App\Http\Controllers\VehicleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -120,6 +122,7 @@ Route::middleware('auth:api')->group(function () {
     Route::delete('invoice', [InvoiceController::class, 'deleteInvoice']);
     Route::post('sendinvoice', [InvoiceController::class, 'sendInvoice']);
 
+
     // // Contract
     // Route::get('/contract',[ContractController::class,'index']);
     // Route::post('/contract',[ContractController::class,'send']);
@@ -143,7 +146,7 @@ Route::get('test', function() {
     // event(new MakeInvoiceEvent("hii"));
     $emailData = EmailRepository::SendEmail("devnetmaxims@gmail.com", "test", "welcome", $data = [], $attachment = []);
     dd($emailData);
-})->name('test');
+})->name('test'); 
 
 Route::get('testsms', function(){
     $data = sendTwilioSms("8447118561", "Test messagess");

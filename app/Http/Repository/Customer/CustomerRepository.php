@@ -284,14 +284,14 @@ class CustomerRepository
                     'date' => Carbon::parse($invoice->created_at)->format('d/m/Y'),
                     'invoice_no' => $invoice->invoice_number,
                     // service name
-                    
+
                     'service' => $service->service_id
                         ? optional(Service::find($service->service_id))->service
                         : $service->temp_service,
                     'description' => $service->description,
                     'due_date' => $invoice->due_date
                         ? Carbon::parse($invoice->due_date)->format('d/m/Y')
-                        : 'N/A',
+                        : 'N/A', 
                     'bill' => number_format($bill, 2),
                     'vat' => number_format($vat, 2),
                     'total' => number_format($total, 2),
