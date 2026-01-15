@@ -56,8 +56,14 @@ class InvoiceExport implements FromCollection, WithHeadings, WithEvents, WithSty
             ->get();
 
         foreach ($invoices as $invoice) {
+            // SAFETY CHECK
+            if (!$invoice->job || !$invoice->job->estimate) {
+                continue; // skip invalid invoice
+            }
 
-            $services = EstimateService::where('estimate_id', $invoice->job->estimate->id)->get();
+            $estimate = $invoice->job->estimate;
+
+            $services = EstimateService::where('estimate_id', $estimate->id)->get();
             if ($services->isEmpty()) continue;
 
             $make  = optional(VehicleMake::find($invoice->job->estimate->make_id))->make;
