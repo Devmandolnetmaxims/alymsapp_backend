@@ -181,47 +181,89 @@ class InvoiceRepository
             ]);
 
             // ================= NEW: SERVICE EDITING =================
+            // if ($request->filled('services')) {
+
+            //     $invoice = Invoice::find($id);
+            //     $job = Job::find($invoice->job_id);
+            //     $estimate = Estimate::find($job->estimate_id);
+
+            //     // Remove old services
+            //     EstimateService::where('estimate_id', $estimate->id)->delete();
+
+            //     $netTotal = 0;
+            //     $netDiscount = 0;
+
+            //     foreach ($request->services as $service) {
+
+            //         $qty = $service['quantity'];
+            //         $rate = $service['rate'];
+            //         $discount = $service['discount'] ?? 0;
+
+            //         $lineTotal = ($qty * $rate) - $discount;
+
+            //         EstimateService::create([
+            //             'estimate_id'  => $estimate->id,
+            //             'service_id'   => $service['service_id'] ?? null,
+            //             'temp_service' => $service['temp_service'] ?? null,
+            //             'description'  => $service['description'] ?? null,
+            //             'quantity'     => $qty,
+            //             'rate'         => $rate,
+            //             'cost_rate'   => $service['cost_rate'] ?? 0,
+            //             'discount'     => $discount,
+            //             'total'        => $lineTotal,
+            //         ]);
+
+            //         $netTotal += ($qty * $rate);
+            //         $netDiscount += $discount;
+            //     }
+
+            //     // Update estimate totals
+            //     $estimate->update([
+            //         'net_total'    => $netTotal,
+            //         'net_discount' => $netDiscount,
+            //         'grand_total'  => $netTotal - $netDiscount,
+            //     ]);
+            // }
+
+            // ================= NEW: SERVICE EDITING =================
             if ($request->filled('services')) {
 
-                $invoice = Invoice::find($id);
-                $job = Job::find($invoice->job_id);
+                $invoice  = Invoice::find($id);
+                $job      = Job::find($invoice->job_id);
                 $estimate = Estimate::find($job->estimate_id);
 
                 // Remove old services
                 EstimateService::where('estimate_id', $estimate->id)->delete();
 
-                $netTotal = 0;
-                $netDiscount = 0;
-
                 foreach ($request->services as $service) {
-
-                    $qty = $service['quantity'];
-                    $rate = $service['rate'];
-                    $discount = $service['discount'] ?? 0;
-
-                    $lineTotal = ($qty * $rate) - $discount;
 
                     EstimateService::create([
                         'estimate_id'  => $estimate->id,
-                        'service_id'   => $service['service_id'] ?? null,
+                        'service_id'   => $service['service_id'] ?: null,
                         'temp_service' => $service['temp_service'] ?? null,
                         'description'  => $service['description'] ?? null,
-                        'quantity'     => $qty,
-                        'rate'         => $rate,
-                        'cost_rate'   => $service['cost_rate'] ?? 0,
-                        'discount'     => $discount,
-                        'total'        => $lineTotal,
+                        'quantity'     => $service['quantity'],
+                        'rate'         => $service['rate'],
+                        'cost_rate'    => $service['cost_rate'] ?? 0,
+                        'discount'     => $service['discount'] ?? 0,
+                        'total'        => $service['total'],
                     ]);
-
-                    $netTotal += ($qty * $rate);
-                    $netDiscount += $discount;
                 }
 
-                // Update estimate totals
+                // ✅ UPDATE ESTIMATE TOTALS FROM PAYLOAD
                 $estimate->update([
-                    'net_total'    => $netTotal,
-                    'net_discount' => $netDiscount,
-                    'grand_total'  => $netTotal - $netDiscount,
+                    'net_total'    => $request->net_total,
+                    'net_discount' => $request->net_discount,
+                    'net_vat'      => $request->net_vat ?? 0,
+                    'grand_total'  => $request->grand_total,
+                ]);
+
+                // ✅ UPDATE INVOICE TOTALS ALSO
+                $invoice->update([
+                    'net_total'    => $request->net_total,
+                    'net_discount' => $request->net_discount,
+                    'net_vat'      => $request->net_vat ?? 0,
+                    'grand_total'  => $request->grand_total,
                 ]);
             }
 
