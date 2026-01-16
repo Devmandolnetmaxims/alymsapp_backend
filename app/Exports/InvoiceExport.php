@@ -75,51 +75,98 @@ class InvoiceExport implements FromCollection, WithHeadings, WithEvents, WithSty
             $firstRow = true;
 
             foreach ($services as $service) {
-
+                
                 $serviceName = $service->service_id
                     ? optional(Service::find($service->service_id))->service
                     : $service->temp_service;
 
+                $estimate = $invoice->job->estimate;
+
+                $isBill    = (string)$invoice->type === Invoice::BILL;
+                $isInvoice = (string)$invoice->type === Invoice::INVOICE;
+
+                $netTotal   = $estimate->net_total ?? 0;
+                $vat        = $estimate->net_vat ?? 0;
+                $grandTotal = $estimate->grand_total ?? 0;
+                $paid       = $estimate->amount ?? 0;
+                $dueBalance = $grandTotal - $paid;
+
                 $rows->push([
                     $invoice->created_at->format('Y-m-d'),
-                    $invoice->job->estimate->registration,
+                    $estimate->registration,
                     $make,
                     $model,
                     $serviceName,
                     $service->description,
                     $invoice->invoice_number,
-                    $invoice->type == Invoice::BILL ? 'BILL' : 'INV',
+                    $isBill ? 'BILL' : 'INV',
                     $service->rate ?? 0,
                     $service->cost_rate ?? 0,
                     $firstRow ? $totalRate : '',
                     $firstRow ? $totalCost : '',
-                   // 👇 FIXED FIELDS
-                    $firstRow ? optional($invoice->due_date)->format('Y-m-d') : '',
 
-                    // Bill Amount
-                    $firstRow && $invoice->type == Invoice::BILL
-                        ? $invoice->net_total
+                    // Due Date (Invoice-level)
+                    $firstRow && $invoice->due_date
+                        ? \Carbon\Carbon::parse($invoice->due_date)->format('Y-m-d')
                         : '',
 
-                    // VAT
-                    $firstRow && $invoice->type != Invoice::BILL
-                        ? $invoice->net_vat
-                        : '',
+                    // Bill amount (Bills only)
+                    $firstRow && $isBill ? $netTotal : '',
+
+                    // VAT (Invoices only)
+                    $firstRow && $isInvoice ? $vat : '',
 
                     // Total
-                    $firstRow
-                        ? ($invoice->type == Invoice::BILL
-                            ? $invoice->net_total
-                            : $invoice->grand_total)
-                        : '',
+                    $firstRow ? ($isBill ? $netTotal : $grandTotal) : '',
 
-                    // Due Balance (same logic as API)
-                    $firstRow
-                        ? ($invoice->type == Invoice::BILL
-                            ? ($invoice->net_total - $invoice->amount)
-                            : ($invoice->grand_total - $invoice->amount))
-                        : '',
+                    // Due Balance
+                    $firstRow ? $dueBalance : '',
                 ]);
+
+                // $serviceName = $service->service_id
+                //     ? optional(Service::find($service->service_id))->service
+                //     : $service->temp_service;
+
+                // $rows->push([
+                //     $invoice->created_at->format('Y-m-d'),
+                //     $invoice->job->estimate->registration,
+                //     $make,
+                //     $model,
+                //     $serviceName,
+                //     $service->description,
+                //     $invoice->invoice_number,
+                //     $invoice->type == Invoice::BILL ? 'BILL' : 'INV',
+                //     $service->rate ?? 0,
+                //     $service->cost_rate ?? 0,
+                //     $firstRow ? $totalRate : '',
+                //     $firstRow ? $totalCost : '',
+                //    // 👇 FIXED FIELDS
+                //     $firstRow ? optional($invoice->due_date)->format('Y-m-d') : '',
+
+                //     // Bill Amount
+                //     $firstRow && $invoice->type == Invoice::BILL
+                //         ? $invoice->net_total
+                //         : '',
+
+                //     // VAT
+                //     $firstRow && $invoice->type != Invoice::BILL
+                //         ? $invoice->net_vat
+                //         : '',
+
+                //     // Total
+                //     $firstRow
+                //         ? ($invoice->type == Invoice::BILL
+                //             ? $invoice->net_total
+                //             : $invoice->grand_total)
+                //         : '',
+
+                //     // Due Balance (same logic as API)
+                //     $firstRow
+                //         ? ($invoice->type == Invoice::BILL
+                //             ? ($invoice->net_total - $invoice->amount)
+                //             : ($invoice->grand_total - $invoice->amount))
+                //         : '',
+                // ]);
 
                 $firstRow = false;
             }
