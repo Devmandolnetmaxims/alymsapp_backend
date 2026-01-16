@@ -833,7 +833,15 @@ class JobRepository
                 // 🔽 ADD ONLY THIS LINE
                 self::applyCommonFilters($jobs, $request);
 
-                if (Auth::user()->roles[0]->id != 2) {
+                // if (Auth::user()->roles[0]->id != 2) {
+                //     $jobs->where(function ($q) {
+                //         $q->whereNull('team')
+                //             ->orWhere('team', '')
+                //             ->orWhereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
+                //     });
+                // }
+
+                if (Auth::user()->roles[0]->id != 2 && $request->status != Job::JOB_INPROGRESS) {
                     $jobs->where(function ($q) {
                         $q->whereNull('team')
                             ->orWhere('team', '')
@@ -882,8 +890,16 @@ class JobRepository
             // ADD ONLY THIS LINE
             self::applyCommonFilters($query, $request);
 
-            if (Auth::user()->roles[0]->id != 2) {
-                $query->where(function ($q) {
+            // if (Auth::user()->roles[0]->id != 2) {
+            //     $query->where(function ($q) {
+            //         $q->whereNull('team')
+            //             ->orWhere('team', '')
+            //             ->orWhereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
+            //     });
+            // }
+
+            if (Auth::user()->roles[0]->id != 2 && $request->status != Job::JOB_INPROGRESS) {
+                $jobs->where(function ($q) {
                     $q->whereNull('team')
                         ->orWhere('team', '')
                         ->orWhereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
@@ -1060,8 +1076,10 @@ class JobRepository
                         'user_id' => Auth::id(),
                         'action' => $logStatus,
                     ];
+
                     // Call log function.
                     get_log($data);
+
                     return true;
                 }
             } elseif ($request->status_change == Job::JOB_DONE) {
