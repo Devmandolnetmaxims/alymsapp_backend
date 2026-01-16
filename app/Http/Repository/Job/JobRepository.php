@@ -1128,9 +1128,10 @@ class JobRepository
 
                     // send email for invoice sending.
                     // get invoice details.
-                    $invoice = Invoice::select('invoices.id as invoice_id')->where('job_id', $id)->first();
+                    // $invoice = Invoice::select('invoices.id as invoice_id')->where('job_id', $id)->first();
+                    $invoice = Invoice::where('job_id', $id)->first();
                     $data = new \stdclass();
-                    $data->invoice_ids = [$invoice->invoice_id];
+                    $data->invoice_ids = [$invoice->id];
                     InvoiceRepository::SendInvoice($data);
                     return true;
                 }
