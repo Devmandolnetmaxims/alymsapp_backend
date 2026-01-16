@@ -777,7 +777,15 @@ class JobRepository
                 // ADD ONLY THIS LINE
                 self::applyCommonFilters($jobs, $request);
 
-                if (Auth::user()->roles[0]->id != 2) {
+                // if (Auth::user()->roles[0]->id != 2) {
+                //     $jobs->where(function ($q) {
+                //         $q->whereNull('team')
+                //             ->orWhere('team', '')
+                //             ->orWhereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
+                //     });
+                // }
+
+                if (Auth::user()->roles[0]->id != 2 && $request->status != Job::JOB_INPROGRESS) {
                     $jobs->where(function ($q) {
                         $q->whereNull('team')
                             ->orWhere('team', '')
