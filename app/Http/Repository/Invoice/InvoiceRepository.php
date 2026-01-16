@@ -177,7 +177,7 @@ class InvoiceRepository
             Invoice::where('id', $id)->update([
                 'type' => $request->type,
                 'due_date' => $request->due_date,
-                'invoice_number' => $request->invoice_number,
+                // 'invoice_number' => $request->invoice_number,
             ]);
 
             // ================= NEW: SERVICE EDITING =================
