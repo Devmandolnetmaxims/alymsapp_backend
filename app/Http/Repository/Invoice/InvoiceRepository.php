@@ -252,6 +252,7 @@ class InvoiceRepository
 
                 // ✅ UPDATE ESTIMATE TOTALS FROM PAYLOAD
                 $estimate->update([
+                    'ref_no'       => $request->ref_no,
                     'net_total'    => $request->net_total,
                     'net_discount' => $request->net_discount,
                     'net_vat'      => $request->net_vat ?? 0,
