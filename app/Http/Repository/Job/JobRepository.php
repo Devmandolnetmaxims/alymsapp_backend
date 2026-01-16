@@ -1130,6 +1130,10 @@ class JobRepository
                     // get invoice details.
                     // $invoice = Invoice::select('invoices.id as invoice_id')->where('job_id', $id)->first();
                     $invoice = Invoice::where('job_id', $id)->first();
+                    if (!$invoice) {
+                        // Invoice not created yet – avoid crash
+                        return true;
+                    }
                     $data = new \stdclass();
                     $data->invoice_ids = [$invoice->id];
                     InvoiceRepository::SendInvoice($data);
