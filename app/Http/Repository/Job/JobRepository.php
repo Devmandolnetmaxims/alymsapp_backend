@@ -1007,6 +1007,7 @@ class JobRepository
             !in_array($request->status, [
                 Job::JOB_INPROGRESS,
                 Job::JOB_DONE,
+                Job::JOB_COLLECT,
                 Job::ALL_STATUS
             ])
         ) {
