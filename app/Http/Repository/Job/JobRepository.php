@@ -785,13 +785,14 @@ class JobRepository
                 //     });
                 // }
 
-                if (Auth::user()->roles[0]->id != 2 && $request->status != Job::JOB_INPROGRESS) {
-                    $jobs->where(function ($q) {
-                        $q->whereNull('team')
-                            ->orWhere('team', '')
-                            ->orWhereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
-                    });
-                }
+                // if (Auth::user()->roles[0]->id != 2 && $request->status != Job::JOB_INPROGRESS) {
+                //     $jobs->where(function ($q) {
+                //         $q->whereNull('team')
+                //             ->orWhere('team', '')
+                //             ->orWhereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
+                //     });
+                // }
+                self::applyTeamFilter($jobs, $request);
 
                 if ($request->filled('search')) {
                     $jobs->where(function ($q) use ($request) {
@@ -849,13 +850,15 @@ class JobRepository
                 //     });
                 // }
 
-                if (Auth::user()->roles[0]->id != 2 && $request->status != Job::JOB_INPROGRESS) {
-                    $jobs->where(function ($q) {
-                        $q->whereNull('team')
-                            ->orWhere('team', '')
-                            ->orWhereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
-                    });
-                }
+                // if (Auth::user()->roles[0]->id != 2 && $request->status != Job::JOB_INPROGRESS) {
+                //     $jobs->where(function ($q) {
+                //         $q->whereNull('team')
+                //             ->orWhere('team', '')
+                //             ->orWhereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
+                //     });
+                // }
+                self::applyTeamFilter($jobs, $request);
+
 
                 if ($request->filled('search')) {
                     $jobs->where(function ($q) use ($request) {
@@ -906,13 +909,15 @@ class JobRepository
             //     });
             // }
 
-            if (Auth::user()->roles[0]->id != 2 && $request->status != Job::JOB_INPROGRESS) {
-                $jobs->where(function ($q) {
-                    $q->whereNull('team')
-                        ->orWhere('team', '')
-                        ->orWhereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
-                });
-            }
+            // if (Auth::user()->roles[0]->id != 2 && $request->status != Job::JOB_INPROGRESS) {
+            //     $jobs->where(function ($q) {
+            //         $q->whereNull('team')
+            //             ->orWhere('team', '')
+            //             ->orWhereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
+            //     });
+            // }
+
+            self::applyTeamFilter($query, $request);
 
             $jobs = $request->filled('per_page') ? $query->paginate($request->per_page) : $query->get();
         }
@@ -993,6 +998,26 @@ class JobRepository
             'data' => $jobs,
         ], 200);
     }
+
+    private static function applyTeamFilter($query, $request)
+    {
+        if (
+            Auth::user()->roles[0]->id != 2 &&
+            $request->filled('status') &&
+            !in_array($request->status, [
+                Job::JOB_INPROGRESS,
+                Job::JOB_DONE,
+                Job::ALL_STATUS
+            ])
+        ) {
+            $query->where(function ($q) {
+                $q->whereNull('team')
+                ->orWhere('team', '')
+                ->orWhereRaw('FIND_IN_SET(?, team)', [Auth::user()->id]);
+            });
+        }
+    }
+
 
     private static function applyCommonFilters($query, $request)
     {
