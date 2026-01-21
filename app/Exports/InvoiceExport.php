@@ -227,7 +227,7 @@ class InvoiceExport implements FromCollection, WithHeadings, WithEvents, WithSty
                     $firstRow && $invoice->due_date
                         ? \Carbon\Carbon::parse($invoice->due_date)->format('Y-m-d')
                         : '',
-                    $firstRow && $isBill ? $netTotal : '',
+                    $firstRow ? $netTotal : '',
                     $firstRow && $isInvoice ? $vat : '',
                     $firstRow ? ($isBill ? $netTotal : $grandTotal) : '',
                     $firstRow ? $dueBalance : '',
