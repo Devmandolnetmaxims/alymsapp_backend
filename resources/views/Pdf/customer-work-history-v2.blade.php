@@ -8,6 +8,7 @@
             color: #222;
         }
 
+        /* HEADER */
         .header {
             width: 100%;
             margin-bottom: 10px;
@@ -39,6 +40,7 @@
             clear: both;
         }
 
+        /* TABLE */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -75,6 +77,7 @@
             font-weight: bold;
         }
 
+        /* SUMMARY BOX */
         .summary-box {
             width: 35%;
             float: right;
@@ -95,6 +98,25 @@
             font-weight: bold;
             border-top: 1px solid #ccc;
             padding-top: 5px;
+        }
+
+        /* FOOTER */
+        .footer-line {
+            border-top: 2px solid #000;
+            margin: 25px 0 8px 0;
+        }
+
+        .footer-text {
+            text-align: center;
+            font-size: 9px;
+            color: #444;
+            margin-bottom: 5px;
+        }
+
+        .footer-note {
+            text-align: center;
+            font-size: 9px;
+            color: #666;
         }
     </style>
 </head>
@@ -117,7 +139,7 @@
 
 <div class="clear"></div>
 
-<!-- TABLE -->
+<!-- WORK HISTORY TABLE -->
 <table>
     <thead>
         <tr>
@@ -138,10 +160,9 @@
                 {{ $row['date'] }}<br>
                 <span class="small">({{ $row['due_date'] }})</span>
             </td>
-            <td>{{ $row['invoice_no'] }}</td>
             <td>
-                {{-- Optional: if you later add vehicle data --}}
-                —
+                {{ $row['invoice_no'] }}<br>
+                <span class="small">Reg: {{ $row['registration_no'] }}</span>
             </td>
             <td>
                 • <strong>{{ $row['service'] }}</strong><br>
@@ -176,6 +197,23 @@
         <span>TOTAL BALANCE DUE:</span>
         <span>£{{ $totalDue }}</span>
     </div>
+</div>
+
+<div class="clear"></div>
+
+<!-- FOOTER -->
+<div class="footer-line"></div>
+
+<div class="footer-text">
+    <strong>BANK DETAILS:</strong>
+    ALMYS AUTOS Business Account |
+    Sort: 12-34-56 |
+    Acc: 12345678 |
+    IBAN: GB29 NWBK 123456789012 34
+</div>
+
+<div class="footer-note">
+    All work completed as per agreed specifications. Payment terms: Net 30 days.
 </div>
 
 </body>

@@ -227,7 +227,8 @@ class CustomerRepository
         // Build query
         $query = Invoice::select(
                 'invoices.*',
-                'estimates.id as estimate_id'
+                'estimates.id as estimate_id',
+                'estimates.registration as registration_no'
             )
             ->join('jobs', 'jobs.id', '=', 'invoices.job_id')
             ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
@@ -266,6 +267,8 @@ class CustomerRepository
 
         $workHistory = [];
         $totalBill = $totalVat = $totalAmount = $totalDue = 0;
+        $registrationNo = $invoices->first()->registration_no ?? 'N/A';
+        // print_r($invoices->toArray()); exit;
 
         foreach ($invoices as $invoice) {
             $services = EstimateService::where('estimate_id', $invoice->estimate_id)->get();
@@ -293,6 +296,7 @@ class CustomerRepository
                         ? Carbon::parse($invoice->due_date)->format('d/m/Y')
                         : 'N/A', 
                     'bill' => number_format($bill, 2),
+                    'registration_no' => $registrationNo,
                     'vat' => number_format($vat, 2),
                     'total' => number_format($total, 2),
                     'due_balance' => number_format($invoice->amount_due, 2),
@@ -308,11 +312,11 @@ class CustomerRepository
             'totalVat' => number_format($totalVat, 2),
             'totalAmount' => number_format($totalAmount, 2),
             'totalDue' => number_format($totalDue, 2),
-            'generatedAt' => now()->format('d/m/Y H:i:s'),
+            'generatedAt' => now()->format('d/m/Y'),
         ]);
 
         return $pdf->download(
-            'customer_work_history_' . $customer->id . '.pdf'
+            'customer_work_history_' . $customer->first_name . '.pdf'
         );
     }
 }
