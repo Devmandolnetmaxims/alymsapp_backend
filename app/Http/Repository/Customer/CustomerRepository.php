@@ -267,42 +267,89 @@ class CustomerRepository
 
         $workHistory = [];
         $totalBill = $totalVat = $totalAmount = $totalDue = 0;
-        $registrationNo = $invoices->first()->registration_no ?? 'N/A';
-        // print_r($invoices->toArray()); exit;
 
         foreach ($invoices as $invoice) {
+
             $services = EstimateService::where('estimate_id', $invoice->estimate_id)->get();
+
+            $serviceList = [];
+            $invoiceBill = $invoiceVat = $invoiceTotal = 0;
 
             foreach ($services as $service) {
                 $bill = $service->rate * $service->quantity;
-                $vat = $bill * 0.2; // 20% VAT
+                $vat = $bill * 0.2;
                 $total = $bill + $vat;
 
-                $totalBill += $bill;
-                $totalVat += $vat;
-                $totalAmount += $total;
-                $totalDue += $invoice->amount_due;
+                $invoiceBill += $bill;
+                $invoiceVat += $vat;
+                $invoiceTotal += $total;
 
-                $workHistory[] = [
-                    'date' => Carbon::parse($invoice->created_at)->format('d/m/Y'),
-                    'invoice_no' => $invoice->invoice_number,
-                    // service name
-
-                    'service' => $service->service_id
+                $serviceList[] = [
+                    'name' => $service->service_id
                         ? optional(Service::find($service->service_id))->service
                         : $service->temp_service,
-                    'description' => $service->description,
-                    'due_date' => $invoice->due_date
-                        ? Carbon::parse($invoice->due_date)->format('d/m/Y')
-                        : 'N/A', 
-                    'bill' => number_format($bill, 2),
-                    'registration_no' => $registrationNo,
-                    'vat' => number_format($vat, 2),
-                    'total' => number_format($total, 2),
-                    'due_balance' => number_format($invoice->amount_due, 2),
+                    'description' => $service->description
                 ];
             }
+
+            $totalBill += $invoiceBill;
+            $totalVat += $invoiceVat;
+            $totalAmount += $invoiceTotal;
+            $totalDue += $invoice->amount_due;
+
+            $workHistory[] = [
+                'date' => Carbon::parse($invoice->created_at)->format('d/m/Y'),
+                'due_date' => $invoice->due_date
+                    ? Carbon::parse($invoice->due_date)->format('d/m/Y')
+                    : 'N/A',
+                'invoice_no' => $invoice->invoice_number,
+                'registration_no' => $invoice->registration_no ?? 'N/A',
+                'services' => $serviceList,
+                'bill' => number_format($invoiceBill, 2),
+                'vat' => number_format($invoiceVat, 2),
+                'total' => number_format($invoiceTotal, 2),
+                'due_balance' => number_format($invoice->amount_due, 2),
+            ];
         }
+
+        // $workHistory = [];
+        // $totalBill = $totalVat = $totalAmount = $totalDue = 0;
+        // $registrationNo = $invoices->first()->registration_no ?? 'N/A';
+        // // print_r($invoices->toArray()); exit;
+
+        // foreach ($invoices as $invoice) {
+        //     $services = EstimateService::where('estimate_id', $invoice->estimate_id)->get();
+
+        //     foreach ($services as $service) {
+        //         $bill = $service->rate * $service->quantity;
+        //         $vat = $bill * 0.2; // 20% VAT
+        //         $total = $bill + $vat;
+
+        //         $totalBill += $bill;
+        //         $totalVat += $vat;
+        //         $totalAmount += $total;
+        //         $totalDue += $invoice->amount_due;
+
+        //         $workHistory[] = [
+        //             'date' => Carbon::parse($invoice->created_at)->format('d/m/Y'),
+        //             'invoice_no' => $invoice->invoice_number,
+        //             // service name
+
+        //             'service' => $service->service_id
+        //                 ? optional(Service::find($service->service_id))->service
+        //                 : $service->temp_service,
+        //             'description' => $service->description,
+        //             'due_date' => $invoice->due_date
+        //                 ? Carbon::parse($invoice->due_date)->format('d/m/Y')
+        //                 : 'N/A', 
+        //             'bill' => number_format($bill, 2),
+        //             'registration_no' => $registrationNo,
+        //             'vat' => number_format($vat, 2),
+        //             'total' => number_format($total, 2),
+        //             'due_balance' => number_format($invoice->amount_due, 2),
+        //         ];
+        //     }
+        // }
 
         // Generate PDF
         $pdf = Pdf::loadView('pdf.customer-work-history-v2', [
