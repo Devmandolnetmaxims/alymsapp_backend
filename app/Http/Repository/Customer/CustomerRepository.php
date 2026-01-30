@@ -301,7 +301,7 @@ class CustomerRepository
         }
 
         // Generate PDF
-        $pdf = Pdf::loadView('pdf.customer-work-history', [
+        $pdf = Pdf::loadView('pdf.customer-work-history-v2', [
             'customer' => $customer,
             'workHistory' => $workHistory,
             'totalBill' => number_format($totalBill, 2),
