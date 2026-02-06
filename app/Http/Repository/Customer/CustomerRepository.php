@@ -14,8 +14,13 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\EstimateService;
 use Carbon\Carbon;
 
+
 class CustomerRepository
 {
+    const STATUS_PAID = '1';
+    const STATUS_UNPAID = '0';
+    const STATUS_PARTIALPAID = '2';
+    const STATUS_OVERDUE = '3';
     // Add Customer.
     public static function AddCustomer($request) {
         // Check Permission.
@@ -224,35 +229,32 @@ class CustomerRepository
 
     public static function workHistoryPdf($customer, $request)
     {
-        // Build query
         $query = Invoice::select(
-                'invoices.*',
-                'estimates.id as estimate_id',
-                'estimates.registration as registration_no'
-            )
-            ->join('jobs', 'jobs.id', '=', 'invoices.job_id')
-            ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
-            ->join('customer', 'customer.id', '=', 'estimates.user_id');
+            'invoices.*',
+            'estimates.id as estimate_id',
+            'estimates.registration as registration_no',
+            'vehicle_make.make as make_name',
+            'vehicle_model.model as model_name'
+        )
+        ->join('jobs', 'jobs.id', '=', 'invoices.job_id')
+        ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
+        ->leftJoin('vehicle_make', 'vehicle_make.id', '=', 'estimates.make_id')
+        ->leftJoin('vehicle_model', 'vehicle_model.id', '=', 'estimates.model_id')
+        ->join('customer', 'customer.id', '=', 'estimates.user_id');
 
         /* =========================
         FILTERS
         ==========================*/
 
-        // Filter by customer ID
-        if ($request->has('customer_id') && !empty($request->customer_id) && $request->customer_id !== 'all' && $request->customer_id !== 'null') {
+        if ($request->filled('customer_id') && $request->customer_id !== 'all') {
             $query->where('estimates.user_id', $request->customer_id);
         }
 
-        // Filter by invoice status
-        if ($request->has('status') && $request->status !== 'all' && $request->status !== 'null') {
+        if ($request->filled('status') && $request->status !== 'all') {
             $query->where('invoices.pay_status', $request->status);
         }
 
-        // Filter by date range
-        if (
-            $request->has('start_date') && !empty($request->start_date) && $request->start_date !== 'null' &&
-            $request->has('end_date') && !empty($request->end_date) && $request->end_date !== 'null'
-        ) {
+        if ($request->filled('start_date') && $request->filled('end_date')) {
             $query->whereBetween('invoices.created_at', [
                 Carbon::parse($request->start_date)->startOfDay(),
                 Carbon::parse($request->end_date)->endOfDay()
@@ -268,20 +270,26 @@ class CustomerRepository
         $workHistory = [];
         $totalBill = $totalVat = $totalAmount = $totalDue = 0;
 
+        $vehicleMakeName  = $invoices->first()->make_name ?? '';
+        $vehicleModelName = $invoices->first()->model_name ?? '';
+
         foreach ($invoices as $invoice) {
 
+            // Get services first
             $services = EstimateService::where('estimate_id', $invoice->estimate_id)->get();
 
-            $serviceList = [];
-            $invoiceBill = $invoiceVat = $invoiceTotal = 0;
+            $serviceList  = [];
+            $invoiceBill  = 0;
+            $invoiceVat   = 0;
+            $invoiceTotal = 0;
 
             foreach ($services as $service) {
-                $bill = $service->rate * $service->quantity;
-                $vat = $bill * 0.2;
+                $bill  = $service->rate * $service->quantity;
+                $vat   = $bill * 0.2;
                 $total = $bill + $vat;
 
-                $invoiceBill += $bill;
-                $invoiceVat += $vat;
+                $invoiceBill  += $bill;
+                $invoiceVat   += $vat;
                 $invoiceTotal += $total;
 
                 $serviceList[] = [
@@ -292,78 +300,69 @@ class CustomerRepository
                 ];
             }
 
-            $totalBill += $invoiceBill;
-            $totalVat += $invoiceVat;
+            // ✅ REAL balance calculation
+            $paidAmount    = $invoice->amount ?? 0;
+            $invoiceBalance = $invoiceTotal - $paidAmount;
+
+            // ✅ Add to total due ONLY for unpaid / partial / overdue
+            if (in_array((int)$invoice->pay_status, [
+                Invoice::STATUS_UNPAID,
+                Invoice::STATUS_PARTIALPAID,
+                Invoice::STATUS_OVERDUE
+            ])) {
+                $totalDue += $invoiceBalance;
+            }
+
+            // Totals
+            $totalBill   += $invoiceBill;
+            $totalVat    += $invoiceVat;
             $totalAmount += $invoiceTotal;
-            $totalDue += $invoice->amount_due;
 
             $workHistory[] = [
-                'date' => Carbon::parse($invoice->created_at)->format('d/m/Y'),
-                'due_date' => $invoice->due_date
+                'date'            => Carbon::parse($invoice->created_at)->format('d/m/Y'),
+                'due_date'        => $invoice->due_date
                     ? Carbon::parse($invoice->due_date)->format('d/m/Y')
                     : 'N/A',
-                'invoice_no' => $invoice->invoice_number,
+                'invoice_no'      => $invoice->invoice_number,
                 'registration_no' => $invoice->registration_no ?? 'N/A',
-                'services' => $serviceList,
-                'bill' => number_format($invoiceBill, 2),
-                'vat' => number_format($invoiceVat, 2),
-                'total' => number_format($invoiceTotal, 2),
-                'due_balance' => number_format($invoice->amount_due, 2),
+                'vehicle_make'    => $vehicleMakeName,
+                'vehicle_model'   => $vehicleModelName,
+                'services'        => $serviceList,
+                'bill'            => number_format($invoiceBill, 2),
+                'vat'             => number_format($invoiceVat, 2),
+                'total'           => number_format($invoiceTotal, 2),
+                'due_balance'     => number_format($invoiceBalance, 2),
+                'status'          => self::getInvoiceStatusLabel($invoice->pay_status),
             ];
         }
 
-        // $workHistory = [];
-        // $totalBill = $totalVat = $totalAmount = $totalDue = 0;
-        // $registrationNo = $invoices->first()->registration_no ?? 'N/A';
-        // // print_r($invoices->toArray()); exit;
+        /* =========================
+        PDF GENERATION
+        ==========================*/
 
-        // foreach ($invoices as $invoice) {
-        //     $services = EstimateService::where('estimate_id', $invoice->estimate_id)->get();
-
-        //     foreach ($services as $service) {
-        //         $bill = $service->rate * $service->quantity;
-        //         $vat = $bill * 0.2; // 20% VAT
-        //         $total = $bill + $vat;
-
-        //         $totalBill += $bill;
-        //         $totalVat += $vat;
-        //         $totalAmount += $total;
-        //         $totalDue += $invoice->amount_due;
-
-        //         $workHistory[] = [
-        //             'date' => Carbon::parse($invoice->created_at)->format('d/m/Y'),
-        //             'invoice_no' => $invoice->invoice_number,
-        //             // service name
-
-        //             'service' => $service->service_id
-        //                 ? optional(Service::find($service->service_id))->service
-        //                 : $service->temp_service,
-        //             'description' => $service->description,
-        //             'due_date' => $invoice->due_date
-        //                 ? Carbon::parse($invoice->due_date)->format('d/m/Y')
-        //                 : 'N/A', 
-        //             'bill' => number_format($bill, 2),
-        //             'registration_no' => $registrationNo,
-        //             'vat' => number_format($vat, 2),
-        //             'total' => number_format($total, 2),
-        //             'due_balance' => number_format($invoice->amount_due, 2),
-        //         ];
-        //     }
-        // }
-
-        // Generate PDF
         $pdf = Pdf::loadView('pdf.customer-work-history-v2', [
-            'customer' => $customer,
-            'workHistory' => $workHistory,
-            'totalBill' => number_format($totalBill, 2),
-            'totalVat' => number_format($totalVat, 2),
-            'totalAmount' => number_format($totalAmount, 2),
-            'totalDue' => number_format($totalDue, 2),
-            'generatedAt' => now()->format('d/m/Y'),
+            'customer'     => $customer,
+            'workHistory'  => $workHistory,
+            'totalBill'    => number_format($totalBill, 2),
+            'totalVat'     => number_format($totalVat, 2),
+            'totalAmount'  => number_format($totalAmount, 2),
+            'totalDue'     => number_format($totalDue, 2),
+            'generatedAt'  => now()->format('d/m/Y'),
         ]);
 
         return $pdf->download(
             'customer_work_history_' . $customer->first_name . '.pdf'
         );
+    }
+
+    public static function getInvoiceStatusLabel($status)
+    {
+        return match ((string) $status) {
+            self::STATUS_PAID => 'PAID',
+            self::STATUS_UNPAID => 'UNPAID',
+            self::STATUS_PARTIALPAID => 'PARTIALLY PAID',
+            self::STATUS_OVERDUE => 'OVERDUE',
+            default => 'UNKNOWN',
+        };
     }
 }
