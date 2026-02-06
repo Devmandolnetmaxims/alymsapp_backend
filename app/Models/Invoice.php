@@ -10,25 +10,25 @@ class Invoice extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = [
-        'company_id',
-        'customer_id',
-        'invoice_number',
-        'date',
-        'due_date',
-        'status',
-        'type',
-        'sub_total',
-        'discount_type',
-        'discount_value',
-        'tax_value',
-        'total_amount',
-        'amount_paid',
-        'amount_due',
-        'notes',
-        'terms',
-        'created_by',
-    ];
+    // protected $fillable = [
+    //     'company_id',
+    //     'customer_id',
+    //     'invoice_number',
+    //     'date',
+    //     'due_date',
+    //     'status',
+    //     'type',
+    //     'sub_total',
+    //     'discount_type',
+    //     'discount_value',
+    //     'tax_value',
+    //     'total_amount',
+    //     'amount_paid',
+    //     'amount_due',
+    //     'notes',
+    //     'terms',
+    //     'created_by',
+    // ];
 
     protected $guarded = [];
     const STATUS_PAID = '1';
