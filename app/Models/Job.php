@@ -13,10 +13,21 @@ class Job extends Model
     const JOB_INPROGRESS = 2;
     const JOB_DONE = 3;
     const JOB_COLLECT = 4;
+    const ALL_STATUS = 5;
     const ONSITE = "Onsite";
     const INPROGRESS = "In Progress";
     const DONE = "Compeleted";
     const COLLECT = "Collected";
     
     protected $guarded = [];
+    
+    public function estimateData()
+    {
+        return $this->belongsTo(Estimate::class, 'estimate_id', 'id');
+    }
+
+    public function estimate()
+    {
+        return $this->belongsTo(Estimate::class);
+    }
 }

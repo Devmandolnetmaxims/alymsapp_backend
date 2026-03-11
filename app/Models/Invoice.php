@@ -10,6 +10,26 @@ class Invoice extends Model
 {
     use HasFactory, SoftDeletes;
 
+    // protected $fillable = [
+    //     'company_id',
+    //     'customer_id',
+    //     'invoice_number',
+    //     'date',
+    //     'due_date',
+    //     'status',
+    //     'type',
+    //     'sub_total',
+    //     'discount_type',
+    //     'discount_value',
+    //     'tax_value',
+    //     'total_amount',
+    //     'amount_paid',
+    //     'amount_due',
+    //     'notes',
+    //     'terms',
+    //     'created_by',
+    // ];
+
     protected $guarded = [];
     const STATUS_PAID = '1';
     const STATUS_UNPAID = '0';
@@ -24,4 +44,9 @@ class Invoice extends Model
     const CREDIT_CARD = '2';
     const CASH_ADVANCE = '3';
     const ONLINE = '4';
+
+    public function job()
+    {
+        return $this->belongsTo(Job::class);
+    }
 }

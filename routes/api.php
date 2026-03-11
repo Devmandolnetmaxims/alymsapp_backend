@@ -23,6 +23,8 @@ use App\Http\Controllers\MotController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Models\User;
+// use App\Http\Controllers\Vehicle\VehicleController;
+use App\Http\Controllers\VehicleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,6 +60,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('invitation/{id}', [EmployeeController::class, 'invitationSend']);
 
     // Customer Aips.
+    Route::get('customer/work-history', [CustomerController::class, 'workHistoryPdf']);
     Route::get('customer/{id??}', [CustomerController::class, 'allCustomer']);
     Route::post('customer', [CustomerController::class, 'createCustomer']);
     Route::put('customer/{id}', [CustomerController::class, 'updateCustomer']);
@@ -91,6 +94,7 @@ Route::middleware('auth:api')->group(function () {
     Route::put('job/{id}', [JobController::class, 'updateJob']);
     Route::delete('job/{id}', [JobController::class, 'deleteJob']);
     Route::post('job/convertjob', [JobController::class, 'jobConvert']);
+    Route::get('/job/{id}/history', [JobController::class, 'jobHistory']);
 
     // Comment apis.
     Route::get('comment', [CommentController::class, 'allComment']);
@@ -111,11 +115,13 @@ Route::middleware('auth:api')->group(function () {
     Route::delete('role/{id}', [RoleController::class, 'deleteRole']);
 
     // Invoice apis
+    Route::get('invoice/export', [InvoiceController::class, 'exportCsv']);
     Route::get('invoice/{id??}', [InvoiceController::class, 'allInvoice']);
     Route::post('invoice/{id??}', [InvoiceController::class, 'createInvoice']);
     Route::put('invoice/{id??}', [InvoiceController::class, 'updateInvoice']);
     Route::delete('invoice', [InvoiceController::class, 'deleteInvoice']);
     Route::post('sendinvoice', [InvoiceController::class, 'sendInvoice']);
+
 
     // // Contract
     // Route::get('/contract',[ContractController::class,'index']);
@@ -140,7 +146,7 @@ Route::get('test', function() {
     // event(new MakeInvoiceEvent("hii"));
     $emailData = EmailRepository::SendEmail("devnetmaxims@gmail.com", "test", "welcome", $data = [], $attachment = []);
     dd($emailData);
-})->name('test');
+})->name('test'); 
 
 Route::get('testsms', function(){
     $data = sendTwilioSms("8447118561", "Test messagess");

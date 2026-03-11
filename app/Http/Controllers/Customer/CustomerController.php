@@ -6,6 +6,7 @@ use App\Http\Requests\Customer\CustomerCreateRequest;
 use App\Http\Requests\Customer\CustomerUpdateRequest;
 use App\Http\Repository\Customer\CustomerRepository;
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
@@ -46,5 +47,23 @@ class CustomerController extends Controller
         // } catch (\Exception $e) {
         //     return response()->json(['data' => [], 'status' => 0, 'message' => "Contract Administrator!!"], 500);
         // }
+    }
+
+    // Customer Work History PDF.
+    public function workHistoryPdf(Request $request)
+    {
+        // Get customer ID from query parameter
+        $customerId = $request->query('customer_id'); // or $request->input('customer_id')
+
+        if (!$customerId) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Customer ID is required.'
+            ], 400);
+        }
+
+        $customer = Customer::findOrFail($customerId);
+
+        return CustomerRepository::workHistoryPdf($customer, $request);
     }
 }

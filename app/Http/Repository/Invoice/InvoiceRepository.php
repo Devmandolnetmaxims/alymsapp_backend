@@ -12,9 +12,13 @@ use App\Models\Service;
 use App\Models\Job;
 use Carbon\Carbon;
 use Auth;
+use Illuminate\Support\Facades\DB;
 use PDF;
+use App\Models\VehicleMake;
+use App\Models\VehicleModel;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class InvoiceRepository 
+class InvoiceRepository
 {
     // Create invoice.
     public static function CreateInvoice($eventdata) {
@@ -76,59 +80,216 @@ class InvoiceRepository
     }
 
     // Single invoice update.
-    public static function InvoiceUpdateSingle($request, $id) {
-        // Check is job id is valid.
-        $invoiceIsExists = Invoice::where('id', $id)->exists();
-        if(!$invoiceIsExists) {
-            return response()->json(['data' => [], 'status' => 0, 'message' => 'Job not found.']);
-        }
+    // public static function InvoiceUpdateSingle($request, $id) {
+    //     // Check is job id is valid.
+    //     $invoiceIsExists = Invoice::where('id', $id)->exists();
+    //     if(!$invoiceIsExists) {
+    //         return response()->json(['data' => [], 'status' => 0, 'message' => 'Job not found.']);
+    //     }
 
-        // check if invoice is already paid.
-        $invoiceIsExists = Invoice::where('id', $id)->where('pay_status', Invoice::STATUS_PAID)->exists();
-        if($invoiceIsExists) {
-            return response()->json(['data' => [], 'status' => 0, 'message' => 'Invoice is already paid.'],400);
-        }
-        // invoice number should not be duplicates.
-        $invoiceIsExists = Invoice::where('id', '!=', $id)->where('invoice_number', $request->invoice_number)->exists();
-        if($invoiceIsExists) {
-            return response()->json(['data' => [], 'status' => 0, 'message' => 'Invoice number already exists.'],400);
-        }
-        $invoice = Invoice::select('jobs.id as job_id', 'jobs.*', 'estimates.id as estimate_id', 'estimates.*')->join('jobs', 'jobs.id', '=', 'invoices.job_id')->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')->where('invoices.id', $id)->first();
+    //     // check if invoice is already paid.
+    //     $invoiceIsExists = Invoice::where('id', $id)->where('pay_status', Invoice::STATUS_PAID)->exists();
+    //     if($invoiceIsExists) {
+    //         return response()->json(['data' => [], 'status' => 0, 'message' => 'Invoice is already paid.'],400);
+    //     }
+    //     // invoice number should not be duplicates.
+    //     $invoiceIsExists = Invoice::where('id', '!=', $id)->where('invoice_number', $request->invoice_number)->exists();
+    //     if($invoiceIsExists) {
+    //         return response()->json(['data' => [], 'status' => 0, 'message' => 'Invoice number already exists.'],400);
+    //     }
+    //     $invoice = Invoice::select('jobs.id as job_id', 'jobs.*', 'estimates.id as estimate_id', 'estimates.*')->join('jobs', 'jobs.id', '=', 'invoices.job_id')->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')->where('invoices.id', $id)->first();
 
-        if($invoice) {
-            // Update amount.
-            $estimate = Estimate::find($invoice->estimate_id);
-            $estimate->amount = $estimate->amount + $request->amount;
-            if($estimate->amount <= $estimate->grand_total) {
-                if($estimate->amount == $estimate->grand_total) {
-                    // update the pay status as paid.
-                    $invoice->pay_status = Invoice::STATUS_PAID;
-                } else {
-                    $invoice->pay_status = Invoice::STATUS_PARTIALPAID;
+    //     if($invoice) {
+    //         // Update amount.
+    //         $estimate = Estimate::find($invoice->estimate_id);
+    //         $estimate->amount = $estimate->amount + $request->amount;
+    //         if($estimate->amount <= $estimate->grand_total) {
+    //             if($estimate->amount == $estimate->grand_total) {
+    //                 // update the pay status as paid.
+    //                 $invoice->pay_status = Invoice::STATUS_PAID;
+    //             } else {
+    //                 $invoice->pay_status = Invoice::STATUS_PARTIALPAID;
+    //             }
+    //             $estimate->save();
+    //         } else {
+    //             return response()->json(['data' => [], 'status' => 0, 'message' => 'Amount limit exced!!'],400);
+    //         }
+
+    //         // check invoice number should not be duplicates.
+    //         $invoiceIsExists = Invoice::where('invoice_number', $invoice->invoice_number)->where('invoice_number', $request->invoice_number)->exists();
+    //         if($invoiceIsExists) {
+    //             return response()->json(['data' => [], 'status' => 0, 'message' => 'Invoice number already exists.'],400);
+    //         }
+    //         $invoice = Invoice::find($id)->update($request->only('pay_status', 'type', 'payment_type', 'last_received', 'due_date', 'invoice_number'));
+
+    //          // Create invoice history.
+    //         $invoiceHistory = new \stdclass();
+    //         $invoiceHistory->invoice_id = $id;
+    //         $invoiceHistory->action = InvoiceHistory::INVOICE_UPDATE;
+    //         InvoiceRepository::InvoiceHistory($invoiceHistory);
+    //     }
+
+    //     if($invoice) {
+    //         return response()->json(['data' => [], 'status' => 1, 'message' => 'Invoice updated successfully.'],200);
+    //     } else {
+    //         return response()->json(['data' => [], 'status' => 0, 'message' => 'Something went wrong.'],400);
+    //     }
+    // }
+
+    public static function InvoiceUpdateSingle($request, $id)
+    {
+        DB::beginTransaction();
+
+        try {
+
+            // ================= EXISTING LOGIC (UNCHANGED) =================
+            $invoiceIsExists = Invoice::where('id', $id)->exists();
+            if (!$invoiceIsExists) {
+                return response()->json([
+                    'data' => [],
+                    'status' => 0,
+                    'message' => 'Job not found.'
+                ]);
+            }
+
+            if (Invoice::where('id', $id)->where('pay_status', Invoice::STATUS_PAID)->exists()) {
+                return response()->json([
+                    'data' => [],
+                    'status' => 0,
+                    'message' => 'Invoice is already paid.'
+                ], 400);
+            }
+
+            if ($request->filled('invoice_number')) {
+                $invoiceIsExists = Invoice::where('id', '!=', $id)
+                    ->where('invoice_number', $request->invoice_number)
+                    ->exists();
+
+                if ($invoiceIsExists) {
+                    return response()->json([
+                        'data' => [],
+                        'status' => 0,
+                        'message' => 'Invoice number already exists.'
+                    ], 400);
                 }
-                $estimate->save();
-            } else {
-                return response()->json(['data' => [], 'status' => 0, 'message' => 'Amount limit exced!!'],400);
+            }
+            // ================= EXISTING INVOICE UPDATE =================
+            Invoice::where('id', $id)->update([
+                'type' => $request->type,
+                'due_date' => $request->due_date,
+                // 'invoice_number' => $request->invoice_number,
+            ]);
+
+            // ================= NEW: SERVICE EDITING =================
+            // if ($request->filled('services')) {
+
+            //     $invoice = Invoice::find($id);
+            //     $job = Job::find($invoice->job_id);
+            //     $estimate = Estimate::find($job->estimate_id);
+
+            //     // Remove old services
+            //     EstimateService::where('estimate_id', $estimate->id)->delete();
+
+            //     $netTotal = 0;
+            //     $netDiscount = 0;
+
+            //     foreach ($request->services as $service) {
+
+            //         $qty = $service['quantity'];
+            //         $rate = $service['rate'];
+            //         $discount = $service['discount'] ?? 0;
+
+            //         $lineTotal = ($qty * $rate) - $discount;
+
+            //         EstimateService::create([
+            //             'estimate_id'  => $estimate->id,
+            //             'service_id'   => $service['service_id'] ?? null,
+            //             'temp_service' => $service['temp_service'] ?? null,
+            //             'description'  => $service['description'] ?? null,
+            //             'quantity'     => $qty,
+            //             'rate'         => $rate,
+            //             'cost_rate'   => $service['cost_rate'] ?? 0,
+            //             'discount'     => $discount,
+            //             'total'        => $lineTotal,
+            //         ]);
+
+            //         $netTotal += ($qty * $rate);
+            //         $netDiscount += $discount;
+            //     }
+
+            //     // Update estimate totals
+            //     $estimate->update([
+            //         'net_total'    => $netTotal,
+            //         'net_discount' => $netDiscount,
+            //         'grand_total'  => $netTotal - $netDiscount,
+            //     ]);
+            // }
+
+            // ================= NEW: SERVICE EDITING =================
+            if ($request->filled('services')) {
+
+                $invoice  = Invoice::find($id);
+                $job      = Job::find($invoice->job_id);
+                $estimate = Estimate::find($job->estimate_id);
+
+                // Remove old services
+                EstimateService::where('estimate_id', $estimate->id)->delete();
+
+                foreach ($request->services as $service) {
+
+                    EstimateService::create([
+                        'estimate_id'  => $estimate->id,
+                        'service_id'   => $service['service_id'] ?: null,
+                        'temp_service' => $service['temp_service'] ?? null,
+                        'description'  => $service['description'] ?? null,
+                        'quantity'     => $service['quantity'],
+                        'rate'         => $service['rate'],
+                        'cost_rate'    => $service['cost_rate'] ?? 0,
+                        'discount'     => $service['discount'] ?? 0,
+                        'total'        => $service['total'],
+                    ]);
+                }
+
+                // ✅ UPDATE ESTIMATE TOTALS FROM PAYLOAD
+                $estimate->update([
+                    'ref_no'       => $request->ref_no,
+                    'net_total'    => $request->net_total,
+                    'net_discount' => $request->net_discount,
+                    'net_vat'      => $request->net_vat ?? 0,
+                    'grand_total'  => $request->grand_total,
+                ]);
+
+                // ✅ UPDATE INVOICE TOTALS ALSO
+                $invoice->update([
+                    'net_total'    => $request->net_total,
+                    'net_discount' => $request->net_discount,
+                    'net_vat'      => $request->net_vat ?? 0,
+                    'grand_total'  => $request->grand_total,
+                ]);
             }
 
-            // check invoice number should not be duplicates.
-            $invoiceIsExists = Invoice::where('invoice_number', $invoice->invoice_number)->where('invoice_number', $request->invoice_number)->exists();
-            if($invoiceIsExists) {
-                return response()->json(['data' => [], 'status' => 0, 'message' => 'Invoice number already exists.'],400);
-            }
-            $invoice = Invoice::find($id)->update($request->only('pay_status', 'type', 'payment_type', 'last_received', 'due_date', 'invoice_number'));
-
-             // Create invoice history.
+            // ================= EXISTING HISTORY (UNCHANGED) =================
             $invoiceHistory = new \stdclass();
             $invoiceHistory->invoice_id = $id;
             $invoiceHistory->action = InvoiceHistory::INVOICE_UPDATE;
             InvoiceRepository::InvoiceHistory($invoiceHistory);
-        }
 
-        if($invoice) {
-            return response()->json(['data' => [], 'status' => 1, 'message' => 'Invoice updated successfully.'],200);
-        } else {
-            return response()->json(['data' => [], 'status' => 0, 'message' => 'Something went wrong.'],400);
+            DB::commit();
+
+            return response()->json([
+                'data' => [],
+                'status' => 1,
+                'message' => 'Invoice updated successfully.'
+            ], 200);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'data' => [],
+                'status' => 0,
+                'message' => 'Something went wrong.'
+            ], 400);
         }
     }
 
@@ -139,7 +300,7 @@ class InvoiceRepository
         if(count(array_unique($invoiceIds)) > 1) {
             return response()->json(['data' => [], 'status' => 0, 'message' => 'All invoices must be related to same customer.'],400);
         }
-        
+
         // Ckeck if ids are valid.
         $invoiceIds = Invoice::whereIn('id', $request->ids)->pluck('id')->toArray();
         if(count($invoiceIds) != count($request->ids)) {
@@ -157,7 +318,7 @@ class InvoiceRepository
         if($invoiceIsExists) {
             return response()->json(['data' => [], 'status' => 0, 'message' => 'Invoice number already exists.'],400);
         }
-        
+
         // Check is given amount is not exced with ithe selected invoices.
         $invoiceAmounts = Invoice::select('estimates.*', 'invoices.*')->join('jobs', 'jobs.id', '=', 'invoices.job_id')->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')->whereIn('invoices.id', $request->ids)->get();
         $totalPending = 0;
@@ -180,11 +341,11 @@ class InvoiceRepository
         ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
         ->whereIn('invoices.id', $request->ids)
         ->orderByRaw("
-            CASE 
+            CASE
                 WHEN invoices.pay_status = '2' THEN 1
                 WHEN invoices.pay_status = '3' THEN 2
                 WHEN invoices.pay_status = '0' THEN 3
-                ELSE 4 
+                ELSE 4
             END
         ")
         ->get();
@@ -257,7 +418,7 @@ class InvoiceRepository
         } else {
             return response()->json(['data' => [], 'status' => 0, 'message' => 'Something went wrong.'],400);
         }
-    } 
+    }
 
     // Get all invoice.
     public static function AllInvoice($request, $id) {
@@ -266,7 +427,7 @@ class InvoiceRepository
         } else {
             return InvoiceRepository::InvoiceByList($request);
         }
-       
+
     }
 
     // Get invoice by list.
@@ -329,7 +490,7 @@ class InvoiceRepository
                 $totalVat = $invoice->net_vat+$totalVat;
                 $type = "Invoice";
             }
-           
+
             if($invoice->due_date < date('Y-m-d')) {
                 $totalDue = $balance + $totalDue;
             } else {
@@ -352,7 +513,7 @@ class InvoiceRepository
                     $history->message = $type.' paid report gerated by ' . $history->first_name . ' ' . $history->last_name . '.';
                 }
             }
-            
+
             // Services.
             $estimateServices = EstimateService::where('estimate_id', $invoice->estimate_id)->get();
             if(count($estimateServices) > 0) {
@@ -381,7 +542,7 @@ class InvoiceRepository
             'account_number' => '43230643',
             'sort_code' => '20-42-76'
         ];
-        
+
         $invoiceData = [
             'total_pending' => $totalPending,
             'total_vat' => $totalVat,
@@ -428,7 +589,7 @@ class InvoiceRepository
             $balance = $invoice->grand_total - $invoice->amount;
         }
         $invoice->balance = $balance;
-        
+
         // Customers Details.
         $invoice->customer = Customer::withTrashed()->find($invoice->user_id);
         $invoice->services = $estimateData;
@@ -446,7 +607,7 @@ class InvoiceRepository
                 $history->message = 'Invoice paid report genrated by ' . $history->first_name . ' ' . $history->last_name . '.';
             }
         }
-        
+
         // Bank Details
         $invoice->bank_details = [
             'bank_name' => 'BARCLAYS BANK',
@@ -454,7 +615,7 @@ class InvoiceRepository
             'sort_code' => '20-42-76'
         ];
 
-        if($invoice) { 
+        if($invoice) {
             return response()->json(['data' => $invoice, 'status' => 1, 'message' => 'Invoice Data!!'], 200);
         } else {
             return response()->json(['data' => [], 'status' => 1, 'message' => 'No Data Found!!'], 200);
@@ -482,7 +643,7 @@ class InvoiceRepository
             ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
             ->where('invoices.id', $id)
             ->first();
-    
+
         // get customer details.
         $customer = Customer::withTrashed()->find($invoice->user_id);
         $invoice->customerDetails = $customer;
@@ -530,7 +691,7 @@ class InvoiceRepository
             return response()->json(['data' => [], 'status' => 0, 'message' => 'Invoice not found.'], 404);
         }
     }
-    
+
 
     // Send invoice through mail.
     public static function SendInvoice($request) {
@@ -551,7 +712,7 @@ class InvoiceRepository
             return response()->json(['data' => [], 'status' => 0, 'message' => 'Invoice not sent.'],200);
         }
     }
-  
+
     // Delete invoice.
     public static function DeleteInvoice($request)
     {
@@ -577,4 +738,244 @@ class InvoiceRepository
             'message' => count($existing) . ' invoice(s) deleted successfully.'
         ], 200);
     }
+
+    // public static function InvoiceExportCsv($request)
+    // {
+    //     $fileName = 'invoice_export_' . now()->format('Ymd_His') . '.csv';
+
+    //     $response = new StreamedResponse(function () use ($request) {
+
+    //         $handle = fopen('php://output', 'w');
+
+    //         // ================= CSV HEADER =================
+    //         fputcsv($handle, [
+    //             'Customer Name',
+    //             'Date',
+    //             'Reg No',
+    //             'Make',
+    //             'Model',
+    //             'Service Name',
+    //             'Description',
+    //             'Invoice / Bill No',
+    //             'Type',
+    //             'Cost Price'
+    //         ]);
+
+    //         // ================= SAME FILTER LOGIC =================
+    //         $invoices = Invoice::select(
+    //                 'invoices.*',
+    //                 'estimates.registration',
+    //                 'estimates.make_id',
+    //                 'estimates.model_id',
+    //                 'estimates.id as estimate_id',
+    //                 'estimates.user_id'
+    //             )
+    //             ->join('jobs', 'jobs.id', '=', 'invoices.job_id')
+    //             ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
+    //             ->join('customer', 'customer.id', '=', 'estimates.user_id');
+
+    //         if ($request->filled('search')) {
+    //             $invoices->where(function ($q) use ($request) {
+    //                 $q->where('invoices.invoice_number', 'like', "%{$request->search}%")
+    //                 ->orWhere('customer.first_name', 'like', "%{$request->search}%")
+    //                 ->orWhere('customer.last_name', 'like', "%{$request->search}%")
+    //                 ->orWhere('customer.email', 'like', "%{$request->search}%");
+    //             });
+    //         }
+
+    //         if ($request->filled('customer_id') && $request->customer_id !== 'all') {
+    //             $invoices->where('estimates.user_id', $request->customer_id);
+    //         }
+
+    //         if ($request->filled('status') && $request->status !== 'all') {
+    //             $invoices->where('invoices.pay_status', $request->status);
+    //         }
+
+    //         if ($request->filled('type') && $request->type !== 'all') {
+    //             $invoices->where('invoices.type', $request->type);
+    //         }
+
+    //         if ($request->filled('start_date') && $request->filled('end_date')) {
+    //             $invoices->whereBetween('invoices.created_at', [
+    //                 $request->start_date,
+    //                 $request->end_date
+    //             ]);
+    //         }
+
+    //         $invoices = $invoices->orderBy('invoices.created_at', 'desc')->get();
+
+    //         // ================= DATA ROWS =================
+    //         foreach ($invoices as $invoice) {
+
+    //             $customer = Customer::withTrashed()->find($invoice->user_id);
+    //             $services = EstimateService::where('estimate_id', $invoice->estimate_id)->get();
+
+    //             foreach ($services as $service) {
+
+    //                 $serviceName = $service->service_id
+    //                     ? optional(Service::find($service->service_id))->service
+    //                     : $service->temp_service;
+
+    //                 $make = optional(VehicleMake::find($invoice->make_id))->make;
+    //                 $model = optional(VehicleModel::find($invoice->model_id))->model;
+
+    //                 fputcsv($handle, [
+    //                     trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')),
+    //                     $invoice->created_at->format('Y-m-d'),
+    //                     $invoice->registration,
+    //                     $make,
+    //                     $model,
+    //                     $serviceName,
+    //                     $service->description,
+    //                     $invoice->invoice_number,
+    //                     $invoice->type == Invoice::BILL ? 'BILL' : 'INV',
+    //                     $service->cost_rate ?? 0
+    //                 ]);
+    //             }
+    //         }
+
+    //         fclose($handle);
+    //     });
+
+    //     $response->headers->set('Content-Type', 'text/csv');
+    //     $response->headers->set('Content-Disposition', "attachment; filename={$fileName}");
+    //     $response->headers->set('Pragma', 'no-cache');
+    //     $response->headers->set('Cache-Control', 'must-revalidate');
+
+    //     return $response;
+
+    // }
+
+    public static function InvoiceExportCsv($request)
+    {
+        $fileName = 'invoice_export_' . now()->format('Ymd_His') . '.csv';
+
+        $response = new StreamedResponse(function () use ($request) {
+
+            $handle = fopen('php://output', 'w');
+
+            // ================= CSV HEADER =================
+            fputcsv($handle, [
+                'Date',
+                'Reg No',
+                'Make',
+                'Model',
+                'Service Name',
+                'Description',
+                'Invoice / Bill No',
+                'Type',
+                'Rate',
+                'Cost Price',
+                'Total Rate',
+                'Total Cost Price',
+                'Due Date',
+                'Bill',
+                'VAT',
+                'Total',
+                'Due Balance'
+            ]);
+
+            // ================= FILTER LOGIC =================
+            $invoices = Invoice::select(
+                    'invoices.*',
+                    'estimates.registration',
+                    'estimates.make_id',
+                    'estimates.model_id',
+                    'estimates.id as estimate_id'
+                )
+                ->join('jobs', 'jobs.id', '=', 'invoices.job_id')
+                ->join('estimates', 'estimates.id', '=', 'jobs.estimate_id')
+                ->join('customer', 'customer.id', '=', 'estimates.user_id');
+
+            if ($request->filled('search')) {
+                $invoices->where(function ($q) use ($request) {
+                    $q->where('invoices.invoice_number', 'like', "%{$request->search}%")
+                    ->orWhere('customer.first_name', 'like', "%{$request->search}%")
+                    ->orWhere('customer.last_name', 'like', "%{$request->search}%")
+                    ->orWhere('customer.email', 'like', "%{$request->search}%");
+                });
+            }
+
+            if ($request->filled('customer_id') && $request->customer_id !== 'all') {
+                $invoices->where('estimates.user_id', $request->customer_id);
+            }
+
+            if ($request->filled('status') && $request->status !== 'all') {
+                $invoices->where('invoices.pay_status', $request->status);
+            }
+
+            if ($request->filled('type') && $request->type !== 'all') {
+                $invoices->where('invoices.type', $request->type);
+            }
+
+            if ($request->filled('start_date') && $request->filled('end_date')) {
+                $invoices->whereBetween('invoices.created_at', [
+                    $request->start_date,
+                    $request->end_date
+                ]);
+            }
+
+            $invoices = $invoices->orderBy('invoices.created_at', 'desc')->get();
+
+            // ================= DATA ROWS =================
+            foreach ($invoices as $invoice) {
+
+                $services = EstimateService::where('estimate_id', $invoice->estimate_id)->get();
+
+                if ($services->isEmpty()) {
+                    continue;
+                }
+
+                $make  = optional(VehicleMake::find($invoice->make_id))->make;
+                $model = optional(VehicleModel::find($invoice->model_id))->model;
+
+                // Totals calculated once per invoice
+                $totalRate = $services->sum('rate');
+                $totalCost = $services->sum('cost_rate');
+
+                $firstRow = true;
+
+                foreach ($services as $service) {
+
+                    $serviceName = $service->service_id
+                        ? optional(Service::find($service->service_id))->service
+                        : $service->temp_service;
+
+                    fputcsv($handle, [
+                        $invoice->created_at->format('Y-m-d'),
+                        $invoice->registration,
+                        $make,
+                        $model,
+                        $serviceName,
+                        $service->description,
+                        $invoice->invoice_number,
+                        $invoice->type == Invoice::BILL ? 'BILL' : 'INV',
+                        $service->rate ?? 0,
+                        $service->cost_rate ?? 0,
+
+                        // Totals only once per invoice
+                        $firstRow ? $totalRate : '',
+                        $firstRow ? $totalCost : '',
+                        $firstRow ? optional($invoice->due_date)->format('Y-m-d') : '',
+                        $firstRow ? ($invoice->bill_amount ?? 0) : '',
+                        $firstRow ? ($invoice->vat_amount ?? 0) : '',
+                        $firstRow ? ($invoice->grand_total ?? 0) : '',
+                        $firstRow ? ($invoice->due_balance ?? 0) : '',
+                    ]);
+
+                    $firstRow = false;
+                }
+            }
+
+            fclose($handle);
+        });
+
+        $response->headers->set('Content-Type', 'text/csv');
+        $response->headers->set('Content-Disposition', "attachment; filename={$fileName}");
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Cache-Control', 'must-revalidate');
+
+        return $response;
+    }
+
 }

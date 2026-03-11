@@ -48,7 +48,7 @@ class EstimateRepository
         // create by
         $request['created_by'] = Auth::id();
 
-        //Created as 
+        //Created as
         $request['module'] = Module::MODULE_ESTIMATE;
 
         // Set balance;
@@ -203,9 +203,9 @@ class EstimateRepository
                 </td>
               </tr>
             </table>
-        
-        
-        
+
+
+
              <table style="width: 100%; border-collapse: separate; border-spacing: 10px;">
               <tr>
               <th style="border: 1px solid #EEEEEE; background: #f9fafb; padding: 15px; font-size: 17px; font-weight: 500; text-align:left; width: 33.33%;">Quote from</th>
@@ -226,7 +226,7 @@ class EstimateRepository
                 </td>
               </tr>
             </table>
-        
+
             <table style="width: 100%; border-collapse: collapse; margin-top: 32px; border: 1px solid #eaeaea;">
               <thead>
                 <tr>
@@ -260,7 +260,7 @@ class EstimateRepository
         $htmlContent .= '
               </tbody>
             </table>
-        
+
             <table style="width: 100%; border-collapse: collapse; border: 1px solid #eaeaea; border-top: 0px; margin-bottom: 32px;">
               <tbody>
                 <tr>
@@ -282,23 +282,23 @@ class EstimateRepository
                 </tr>
               </tbody>
             </table>
-        
+
            <table style="margin: 0 auto; text-align: center;">
           <tr>
             <td style="font-family: "Roboto", serif;">
               <b style="font-size:18px; font-weight:500; color:#3b4b85; font-family: "Roboto", serif;">
                 Thankyou!
-              </b> 
+              </b>
               for choosing Almys Auto
             </td>
           </tr>
         </table>
-          
-        
+
+
           </div>
         </body>
         </html>
-        
+
         ';
         return $htmlContent;
     }
@@ -567,7 +567,8 @@ class EstimateRepository
         if ($request->has('customer') && !empty($request->customer)) {
             $estimates = $estimates->where(function ($query) use ($request) {
                 $query->where('first_name', 'like', "%{$request->customer}%")
-                    ->orWhere('last_name', 'like', "%{$request->customer}%");
+                    ->orWhere('last_name', 'like', "%{$request->customer}%")
+                    ->orWhere('registration', 'like', "%{$request->customer}%");
             });
         }
 

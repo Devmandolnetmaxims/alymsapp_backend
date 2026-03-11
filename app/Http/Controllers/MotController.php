@@ -32,6 +32,58 @@ class MotController extends Controller
     /**
      * Fetch MOT history by vehicle registration number
      */
+    // public function fetchMotData($registration)
+    // {
+    //     $token = $this->getAccessToken();
+    //     if ($token instanceof \Illuminate\Http\JsonResponse) {
+    //         return $token;
+    //     }
+
+    //     $url = "https://history.mot.api.gov.uk/v1/trade/vehicles/registration/" . strtoupper($registration);
+
+    //     $response = Http::withHeaders([
+    //         'Authorization' => "Bearer {$token}",
+    //         'X-API-Key' => env('MOT_API_KEY'),
+    //         'Accept' => 'application/json+v6',
+    //     ])->get($url);
+
+    //     if ($response->status() === 200) {
+
+    //         $motData = $response->json();
+
+    //         $taxData = $this->fetchTaxData($registration);
+    //         if ($taxData instanceof \Illuminate\Http\JsonResponse) {
+    //             return $taxData;
+    //         }
+
+    //         // ✅ Handle array-based MOT response
+    //         if (isset($motData[0])) {
+    //             $motData[0]['taxStatus']  = $taxData['taxStatus'] ?? null;
+    //             $motData[0]['taxDueDate'] = $taxData['taxDueDate'] ?? null;
+    //         }
+
+    //         return response()->json($motData, 200);
+    //     }
+
+    //     if ($response->status() === 404) {
+    //         return response()->json([
+    //             'message' => "No MOT records found for {$registration}."
+    //         ], 404);
+    //     }
+
+    //     if ($response->status() === 403) {
+    //         return response()->json([
+    //             'message' => 'Forbidden – check MOT API key or permissions.'
+    //         ], 403);
+    //     }
+
+    //     return response()->json([
+    //         'error' => 'Unknown error',
+    //         'status' => $response->status(),
+    //         'details' => $response->body(),
+    //     ], $response->status());
+    // }
+
     public function fetchMotData($registration)
     {
         // Step 1: Get token
@@ -65,4 +117,27 @@ class MotController extends Controller
             'details' => $response->body(),
         ], $response->status());
     }
+
+    private function fetchTaxData($registration)
+    {
+        $response = Http::withHeaders([
+            'x-api-key' => env('DVLA_API_KEY'),
+            'Content-Type' => 'application/json',
+        ])->post(env('DVLA_API_URL'), [
+            'registrationNumber' => strtoupper($registration),
+        ]);
+
+
+        if (!$response->successful()) {
+            return response()->json([
+                'error' => 'Failed to fetch tax data',
+                'details' => $response->json(),
+                'status' => $response->status(),
+                'raw_response' => $response->body(), // 👈 IMPORTANT
+            ], $response->status());
+        }
+
+        return $response->json();
+    }
+
 }
