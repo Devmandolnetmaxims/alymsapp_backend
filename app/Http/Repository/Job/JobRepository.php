@@ -25,6 +25,7 @@ use App\Models\File;
 use App\Models\Job;
 use App\Models\log;
 use Auth;
+use Illuminate\Support\Facades\Log as LaravelLog;
 
 
 class JobRepository
@@ -144,6 +145,68 @@ class JobRepository
 
 
     // Convert estimate to job
+    // public static function EstimateToJob($request)
+    // {
+    //     // Check Permission.
+    //     $permission = ['Add/Edit Job'];
+    //     if (PermissionCheck($permission) === true) {
+    //     } else {
+    //         return PermissionCheck($permission);
+    //     }
+    //     // Check team is not empty for in-progress and compelete.
+    //     if ($request->has('status') && ($request->status == Job::JOB_INPROGRESS || $request->status == Job::JOB_DONE)) {
+    //         // set validation is job convert to in progress without team.
+    //         // Check is team is assign or not.
+    //         if ($request->team == null) {
+    //             return response()->json(['data' => [], 'status' => 0, "message" => "Please assign team members first !!"], 422);
+    //         }
+    //     }
+
+    //     // Create job here.
+    //     $job = Job::create([
+    //         'estimate_id' => $request->id,
+    //     ]);
+
+    //     // Now change the status.
+    //     if ($request->has('status') && !empty($request->status)) {
+    //         $request['status_change'] = $request->status;
+    //         $jobStatus = JobRepository::UpdateStatus($request, $job->id);
+    //         if ($jobStatus === true) {
+    //             //
+    //         } else {
+    //             return $jobStatus;
+    //         }
+    //     }
+
+    //     if ($request->module == Module::MODULE_JOB) {
+    //         // Add log for job create.
+    //         $data = [
+    //             'activity' => 2,
+    //             'instance_id' => $job->id,
+    //             'user_id' => Auth::id(),
+    //             'action' => log::ACTION_CREATE,
+    //         ];
+    //         // Call log function.
+    //         get_log($data);
+    //     } else {
+    //         // Add log for Estimate convert.
+    //         $data = [
+    //             'activity' => 2,
+    //             'instance_id' => $job->id,
+    //             'user_id' => Auth::id(),
+    //             'action' => "Converted",
+    //         ];
+    //         // Call log function.
+    //         get_log($data);
+    //     }
+
+    //     if ($request->has('team') && !empty($request->team)) {
+    //         JobRepository::AssignTeam($request, $job->id);
+    //     }
+
+    //     return response()->json(['data' => [], 'status' => 1, 'message' => 'Job Created Successfuly!!'], 200);
+    // }
+
     public static function EstimateToJob($request)
     {
         // Check Permission.
@@ -152,10 +215,9 @@ class JobRepository
         } else {
             return PermissionCheck($permission);
         }
+
         // Check team is not empty for in-progress and compelete.
         if ($request->has('status') && ($request->status == Job::JOB_INPROGRESS || $request->status == Job::JOB_DONE)) {
-            // set validation is job convert to in progress without team.
-            // Check is team is assign or not.
             if ($request->team == null) {
                 return response()->json(['data' => [], 'status' => 0, "message" => "Please assign team members first !!"], 422);
             }
@@ -166,41 +228,46 @@ class JobRepository
             'estimate_id' => $request->id,
         ]);
 
-        // Now change the status.
-        if ($request->has('status') && !empty($request->status)) {
-            $request['status_change'] = $request->status;
-            $jobStatus = JobRepository::UpdateStatus($request, $job->id);
-            if ($jobStatus === true) {
-                //
-            } else {
-                return $jobStatus;
-            }
-        }
+        // This will write to storage/logs/laravel.log
+        LaravelLog::info('Job Created with ID: ' . $job->id);
 
-        if ($request->has('team') && !empty($request->team)) {
-            JobRepository::AssignTeam($request, $job->id);
-        }
         if ($request->module == Module::MODULE_JOB) {
-            // Add log for job create.
             $data = [
                 'activity' => 2,
                 'instance_id' => $job->id,
                 'user_id' => Auth::id(),
                 'action' => log::ACTION_CREATE,
             ];
-            // Call log function.
+            LaravelLog::info('Attempting to log "Created" action', $data);
             get_log($data);
         } else {
-            // Add log for Estimate convert.
             $data = [
                 'activity' => 2,
                 'instance_id' => $job->id,
                 'user_id' => Auth::id(),
                 'action' => "Converted",
             ];
-            // Call log function.
+            LaravelLog::info('Attempting to log "Converted" action', $data);
             get_log($data);
         }
+
+        // Now change the status.
+        if ($request->has('status') && !empty($request->status)) {
+            $request['status_change'] = $request->status;
+            $jobStatus = JobRepository::UpdateStatus($request, $job->id);
+            if ($jobStatus === true) {
+                LaravelLog::info('Status updated successfully for Job ID: ' . $job->id);
+            } else {
+                LaravelLog::error('Status update failed for Job ID: ' . $job->id);
+                return $jobStatus;
+            }
+        }
+
+        if ($request->has('team') && !empty($request->team)) {
+            LaravelLog::info('Assigning team to Job ID: ' . $job->id);
+            JobRepository::AssignTeam($request, $job->id);
+        }
+
         return response()->json(['data' => [], 'status' => 1, 'message' => 'Job Created Successfuly!!'], 200);
     }
 
@@ -1060,7 +1127,7 @@ class JobRepository
 
             // Logs
             $logdata = [];
-            $logs = LogRepository::GetLog(['activity' => [$job->module], 'instance_id' => $job->id]);
+            $logs = LogRepository::GetLog(['activity' => [2], 'instance_id' => $job->id]);
             foreach ($logs as $log) {
                 $user = User::find($log->user_id);
                 $module = Module::find($log->activity);
