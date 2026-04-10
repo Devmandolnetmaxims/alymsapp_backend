@@ -25,6 +25,7 @@ use App\Models\File;
 use App\Models\Job;
 use App\Models\log;
 use Auth;
+use Illuminate\Support\Facades\Log as LaravelLog;
 
 
 class JobRepository
@@ -52,7 +53,7 @@ class JobRepository
         // Add other values.
         $request['created_by'] = Auth::id();
 
-        //Created as 
+        //Created as
         $request['module'] = Module::MODULE_JOB;
 
         // Set balance;
@@ -144,6 +145,68 @@ class JobRepository
 
 
     // Convert estimate to job
+    // public static function EstimateToJob($request)
+    // {
+    //     // Check Permission.
+    //     $permission = ['Add/Edit Job'];
+    //     if (PermissionCheck($permission) === true) {
+    //     } else {
+    //         return PermissionCheck($permission);
+    //     }
+    //     // Check team is not empty for in-progress and compelete.
+    //     if ($request->has('status') && ($request->status == Job::JOB_INPROGRESS || $request->status == Job::JOB_DONE)) {
+    //         // set validation is job convert to in progress without team.
+    //         // Check is team is assign or not.
+    //         if ($request->team == null) {
+    //             return response()->json(['data' => [], 'status' => 0, "message" => "Please assign team members first !!"], 422);
+    //         }
+    //     }
+
+    //     // Create job here.
+    //     $job = Job::create([
+    //         'estimate_id' => $request->id,
+    //     ]);
+
+    //     // Now change the status.
+    //     if ($request->has('status') && !empty($request->status)) {
+    //         $request['status_change'] = $request->status;
+    //         $jobStatus = JobRepository::UpdateStatus($request, $job->id);
+    //         if ($jobStatus === true) {
+    //             //
+    //         } else {
+    //             return $jobStatus;
+    //         }
+    //     }
+
+    //     if ($request->module == Module::MODULE_JOB) {
+    //         // Add log for job create.
+    //         $data = [
+    //             'activity' => 2,
+    //             'instance_id' => $job->id,
+    //             'user_id' => Auth::id(),
+    //             'action' => log::ACTION_CREATE,
+    //         ];
+    //         // Call log function.
+    //         get_log($data);
+    //     } else {
+    //         // Add log for Estimate convert.
+    //         $data = [
+    //             'activity' => 2,
+    //             'instance_id' => $job->id,
+    //             'user_id' => Auth::id(),
+    //             'action' => "Converted",
+    //         ];
+    //         // Call log function.
+    //         get_log($data);
+    //     }
+
+    //     if ($request->has('team') && !empty($request->team)) {
+    //         JobRepository::AssignTeam($request, $job->id);
+    //     }
+
+    //     return response()->json(['data' => [], 'status' => 1, 'message' => 'Job Created Successfuly!!'], 200);
+    // }
+
     public static function EstimateToJob($request)
     {
         // Check Permission.
@@ -152,10 +215,9 @@ class JobRepository
         } else {
             return PermissionCheck($permission);
         }
+
         // Check team is not empty for in-progress and compelete.
         if ($request->has('status') && ($request->status == Job::JOB_INPROGRESS || $request->status == Job::JOB_DONE)) {
-            // set validation is job convert to in progress without team.
-            // Check is team is assign or not.
             if ($request->team == null) {
                 return response()->json(['data' => [], 'status' => 0, "message" => "Please assign team members first !!"], 422);
             }
@@ -166,41 +228,46 @@ class JobRepository
             'estimate_id' => $request->id,
         ]);
 
-        // Now change the status.
-        if ($request->has('status') && !empty($request->status)) {
-            $request['status_change'] = $request->status;
-            $jobStatus = JobRepository::UpdateStatus($request, $job->id);
-            if ($jobStatus === true) {
-                //
-            } else {
-                return $jobStatus;
-            }
-        }
+        // This will write to storage/logs/laravel.log
+        LaravelLog::info('Job Created with ID: ' . $job->id);
 
-        if ($request->has('team') && !empty($request->team)) {
-            JobRepository::AssignTeam($request, $job->id);
-        }
         if ($request->module == Module::MODULE_JOB) {
-            // Add log for job create.
             $data = [
                 'activity' => 2,
                 'instance_id' => $job->id,
                 'user_id' => Auth::id(),
                 'action' => log::ACTION_CREATE,
             ];
-            // Call log function.
+            LaravelLog::info('Attempting to log "Created" action', $data);
             get_log($data);
         } else {
-            // Add log for Estimate convert.
             $data = [
                 'activity' => 2,
                 'instance_id' => $job->id,
                 'user_id' => Auth::id(),
                 'action' => "Converted",
             ];
-            // Call log function.
+            LaravelLog::info('Attempting to log "Converted" action', $data);
             get_log($data);
         }
+
+        // Now change the status.
+        if ($request->has('status') && !empty($request->status)) {
+            $request['status_change'] = $request->status;
+            $jobStatus = JobRepository::UpdateStatus($request, $job->id);
+            if ($jobStatus === true) {
+                LaravelLog::info('Status updated successfully for Job ID: ' . $job->id);
+            } else {
+                LaravelLog::error('Status update failed for Job ID: ' . $job->id);
+                return $jobStatus;
+            }
+        }
+
+        if ($request->has('team') && !empty($request->team)) {
+            LaravelLog::info('Assigning team to Job ID: ' . $job->id);
+            JobRepository::AssignTeam($request, $job->id);
+        }
+
         return response()->json(['data' => [], 'status' => 1, 'message' => 'Job Created Successfuly!!'], 200);
     }
 
@@ -327,59 +394,141 @@ class JobRepository
     }
 
     // Assign team members to job.
+    // public static function AssignTeam($request, $id)
+    // {
+    //     // Check Permission.
+    //     $permission = ['Add/Edit Job'];
+    //     if (PermissionCheck($permission) === true) {
+    //     } else {
+    //         return PermissionCheck($permission);
+    //     }
+    //     $teamids = $request->team;
+    //     // Array convert to coma seprated string.
+    //     $team = implode(",", $request->team);
+    //     $request['team'] = $team;
+    //     $fcmService = app(NotificationController::class);
+    //     // send notification.
+    //     foreach ($teamids as $teamid) {
+    //         $user = User::find($teamid);
+    //         if ($user != null) {
+    //             $title = "Car Repair Job";
+    //             $body = "Hey " . $user->first_name . " " . $user->last_name . "! A new job has been assigned to you. Let's begin working on it!";
+    //             $fcmService->sendAppNotification($title, $body, $teamid);
+    //         }
+    //     }
+
+    //     // get servies.
+    //     $estimatesData = Job::join('estimates', 'jobs.estimate_id', '=', 'estimates.id')->where('jobs.id', $id)->first();
+    //     $estimateServices = EstimateService::where('estimate_id', $estimatesData->estimate_id)->get();
+    //     foreach ($estimateServices as $estimateService) {
+    //         if ($estimateService->service_id != null && ($estimateService->service_id == 1 || $estimateService->service_id == 10)) {
+    //             foreach ($teamids as $teamid) {
+    //                 $user = User::find($teamid);
+    //                 $title = "Material Requested";
+    //                 $body = $estimateService->description ? $estimateService->description : "Take All Required Material's";
+    //                 $fcmService->sendAppNotification($title, $body, $teamid);
+    //             }
+    //         }
+    //     }
+    //     // Update Job.
+    //     $job = Job::where('id', $id)->update(['team' => $request->team]);
+    //     if ($job) {
+    //         // Add log for job assign team.
+    //         $data = [
+    //             'activity' => 2,
+    //             'instance_id' => $id,
+    //             'user_id' => Auth::id(),
+    //             'action' => "Assign Team",
+    //         ];
+    //         // Call log function.
+    //         get_log($data);
+
+    //         return response()->json(['data' => [], 'status' => 1, 'message' => 'Team Assign Successfuly!!'], 200);
+    //     } else {
+    //         return response()->json(['data' => [], 'status' => 0, 'message' => 'Somethign Wrong!!'], 500);
+    //     }
+    // }
+
     public static function AssignTeam($request, $id)
     {
-        // Check Permission.
+        // 1. Check Permission
         $permission = ['Add/Edit Job'];
-        if (PermissionCheck($permission) === true) {
-        } else {
+        if (PermissionCheck($permission) !== true) {
             return PermissionCheck($permission);
         }
-        $teamids = $request->team;
-        // Array convert to coma seprated string.
-        $team = implode(",", $request->team);
-        $request['team'] = $team;
+
+        // 2. Fetch current job data to compare team
+        $jobRecord = Job::find($id);
+        if (!$jobRecord) {
+            return response()->json(['data' => [], 'status' => false, 'message' => 'Job not found'], 404);
+        }
+
+        $oldTeamString = $jobRecord->team ?? ''; // Existing CSV string in DB: "44,45"
+        $newTeamArray = $request->team; // Incoming array: [44]
+
+        // Convert new team to a sorted CSV string for an accurate comparison
+        sort($newTeamArray);
+        $newTeamString = implode(",", $newTeamArray);
+
+        // 3. CHECK: If the team is exactly the same, skip the update/log
+        if ($oldTeamString === $newTeamString) {
+            return response()->json([
+                'data' => [],
+                'status' => 1,
+                'message' => 'Team is already assigned to this job. No changes made.'
+            ], 200);
+        }
+
+        // --- Proceed only if team is different ---
+
         $fcmService = app(NotificationController::class);
-        // send notification.
-        foreach ($teamids as $teamid) {
+
+        // Send notifications to the new team
+        foreach ($newTeamArray as $teamid) {
             $user = User::find($teamid);
             if ($user != null) {
                 $title = "Car Repair Job";
-                $body = "Hey " . $user->first_name . " " . $user->last_name . "! A new job has been assigned to you. Let's begin working on it!";
+                $body = "Hey " . $user->first_name . " " . $user->last_name . "! A new job has been assigned to you.";
                 $fcmService->sendAppNotification($title, $body, $teamid);
             }
         }
 
-        // get servies.
-        $estimatesData = Job::join('estimates', 'jobs.estimate_id', '=', 'estimates.id')->where('jobs.id', $id)->first();
-        $estimateServices = EstimateService::where('estimate_id', $estimatesData->estimate_id)->get();
-        foreach ($estimateServices as $estimateService) {
-            if ($estimateService->service_id != null && ($estimateService->service_id == 1 || $estimateService->service_id == 10)) {
-                foreach ($teamids as $teamid) {
-                    $user = User::find($teamid);
-                    $title = "Material Requested";
-                    $body = $estimateService->description ? $estimateService->description : "Take All Required Material's";
-                    $fcmService->sendAppNotification($title, $body, $teamid);
+        // Get services and send material notifications
+        $estimatesData = Job::join('estimates', 'jobs.estimate_id', '=', 'estimates.id')
+            ->where('jobs.id', $id)
+            ->select('estimates.id as estimate_id')
+            ->first();
+
+        if ($estimatesData) {
+            $estimateServices = EstimateService::where('estimate_id', $estimatesData->estimate_id)->get();
+            foreach ($estimateServices as $estimateService) {
+                if ($estimateService->service_id == 1 || $estimateService->service_id == 10) {
+                    foreach ($newTeamArray as $teamid) {
+                        $title = "Material Requested";
+                        $body = $estimateService->description ?: "Take All Required Materials";
+                        $fcmService->sendAppNotification($title, $body, $teamid);
+                    }
                 }
             }
         }
-        // Update Job.
-        $job = Job::where('id', $id)->update(['team' => $request->team]);
-        if ($job) {
-            // Add log for job assign team.
+
+        // 4. Update Job
+        $updateSuccess = Job::where('id', $id)->update(['team' => $newTeamString]);
+
+        if ($updateSuccess) {
+            // 5. Add log ONLY because the team was different
             $data = [
                 'activity' => 2,
                 'instance_id' => $id,
                 'user_id' => Auth::id(),
                 'action' => "Assign Team",
             ];
-            // Call log function.
             get_log($data);
 
-            return response()->json(['data' => [], 'status' => 1, 'message' => 'Team Assign Successfuly!!'], 200);
-        } else {
-            return response()->json(['data' => [], 'status' => 0, 'message' => 'Somethign Wrong!!'], 500);
+            return response()->json(['data' => [], 'status' => 1, 'message' => 'Team Assigned Successfully!!'], 200);
         }
+
+        return response()->json(['data' => [], 'status' => 0, 'message' => 'Something went wrong!!'], 500);
     }
 
     // Job AllList.
@@ -978,7 +1127,7 @@ class JobRepository
 
             // Logs
             $logdata = [];
-            $logs = LogRepository::GetLog(['activity' => [$job->module], 'instance_id' => $job->id]);
+            $logs = LogRepository::GetLog(['activity' => [2], 'instance_id' => $job->id]);
             foreach ($logs as $log) {
                 $user = User::find($log->user_id);
                 $module = Module::find($log->activity);
